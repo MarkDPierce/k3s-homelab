@@ -2,3 +2,7 @@ external-dns:
   fullnameOverride: external-dns
   provider: pihole
   registry: noop
+
+  extraArgs:
+    - --pihole-server=http://192.168.178.104:8085
+    - --pihole-tls-skip-verify

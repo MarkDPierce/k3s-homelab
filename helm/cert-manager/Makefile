@@ -1,7 +1,7 @@
 NS := cert-manager
 CHARTVERSION := 1.13.2
 ENV := dev
-VALUES := -f values.yaml -f values.$(ENV).yaml
+VALUES := -f values.yaml -f values.$(ENV).yaml -f secrets.yaml
 
 .PHONY: unpack
 unpack:
