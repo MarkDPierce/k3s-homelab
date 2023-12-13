@@ -14,10 +14,7 @@ apps:
     valueFiles:
       - values.yaml
       - values.dev.yaml
-      - secrets.yaml
-    upstream:
-      repo: https://charts.jetstack.io
-      targetRevision: v1.13.3
+      - secrets://secrets.yaml
 
   sockshop:
     valueFiles:
@@ -26,10 +23,7 @@ apps:
   external-dns:
     valueFiles:
       - values.yaml
-      - secrets.yaml
-    upstream:
-      repo: https://kubernetes-sigs.github.io/external-dns
-      targetRevision: "1.13.1"
+      - secrets://secrets.yaml
 
   metallb:
     valueFiles:
@@ -56,9 +50,6 @@ apps:
     valueFiles:
       - values.yaml
       - values.dev.yaml
-      - secrets.yaml
+      - secrets://secrets.yaml
       - prometheus.yaml
       - alertmanager.yaml
-    upstream:
-      repo: hhttps://prometheus-community.github.io/helm-charts
-      targetRevision: "55.4.0"
