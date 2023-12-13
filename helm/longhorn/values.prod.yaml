@@ -1,0 +1,22 @@
+# Does not allow custom labels: Wanting a Rancher based app that is not total garbage. That would be nice.
+hostname: &hostname longhorn.mpierce.net
+
+longhorn:
+  services:
+    ui:
+      type: LoadBalancer
+      loadBalancerIP: 192.168.178.221
+    manager:
+      type: LoadBalancer
+
+  ingress:
+    enabled: true
+    ingressClassName: traefik
+    host: *hostname
+    tls: true
+    tlsSecret: longhorn-tls-secret
+    path: /
+    annotations:
+      traefik.ingress.kubernetes.io/router.entrypoints: websecure
+      traefik.ingress.kubernetes.io/router.tls: "true"
+      cert-manager.io/cluster-issuer: letsencrypt

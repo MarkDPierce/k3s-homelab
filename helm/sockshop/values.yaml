@@ -1,0 +1,21 @@
+helm-chart:
+  ingress:
+    annotations:
+      traefik.ingress.kubernetes.io/router.entrypoints: websecure
+      traefik.ingress.kubernetes.io/router.tls: "true"
+      cert-manager.io/cluster-issuer: letsencrypt
+      kubernetes.io/ingress.class: traefik
+    host: sockshop.dev.mpierce.net
+    tlsSecretName: sockshop-ingress-tls
+
+  cartsdb:
+    persistenVolume:
+      stoargeClass: longhorn
+
+  ordersdb:
+    persistenVolume:
+      stoargeClass: longhorn
+
+  sessiondb:
+    persistenVolume:
+      stoargeClass: longhorn

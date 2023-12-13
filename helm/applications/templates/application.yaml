@@ -1,0 +1,66 @@
+{{ range $key,$values := .Values.apps }}
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: {{ default $key $values.name }}
+  namespace: argo-cd
+  annotations:
+    # filter webhook triggered changes more aggressively
+    # docs: https://argoproj.github.io/argo-cd/operator-manual/high_availability/#webhook-and-manifest-paths-annotation
+    argocd.argoproj.io/manifest-generate-paths: .
+    {{- if $values.syncWave }}
+    # sync-wave defaults to 0 (and can be negative), so a higher/lower number can be used to change syncing order between apps
+    # docs: https://argo-cd.readthedocs.io/en/stable/user-guide/sync-waves/
+    # needs https://argo-cd.readthedocs.io/en/stable/operator-manual/upgrading/1.7-1.8/#health-assessment-of-argoprojioapplication-crd-has-been-removed workaround on ArgoCD server
+    argocd.argoproj.io/sync-wave: {{ $values.syncWave | quote }}
+    {{- end }}
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  destination:
+    namespace: {{ default $key $values.namespace }}
+    server: https://kubernetes.default.svc
+  project: {{ $.Values.project }}
+  {{- if $values.ignoreDifferences }}
+  ignoreDifferences:
+    {{- toYaml $values.ignoreDifferences | nindent 4 }}
+  {{- end }}
+  {{- if $values.upstream }}
+  sources:
+  - chart: {{ default $key $values.releaseName }}
+    repoURL: {{ default $key $values.upstream.repo }}
+    targetRevision: {{ default $key $values.upstream.targetRevision }}
+    helm: 
+      valueFiles:
+      {{- range $v := $values.valueFiles }}
+        - {{- printf " %s/%s/%s/%s" "$values" "helm" (default $key $values.directory) $v }}
+      {{- end }}
+  - repoURL: {{ default $.Values.repo $values.repo }}
+    targetRevision: {{ default $.Values.branch $values.branch }}
+    ref: values
+  {{- else }}
+  source:
+    path: helm/{{ default $key $values.directory }}
+    repoURL: {{ default $.Values.repo $values.repo }}
+    targetRevision: {{ default $.Values.branch $values.branch }}
+    helm:
+      releaseName: {{ default $key $values.releaseName }}
+      {{- if $values.valueFiles }}
+      valueFiles:
+        {{- toYaml $values.valueFiles | nindent 8 }}
+      {{- end }}
+      {{- if $values.values }}
+      values: {{ $values.values | quote }}
+      {{- end }}
+  {{- end }}
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+      - ServerSideApply={{ default true $values.serverSideApply}}
+    retry:
+      limit: 2
+{{ end }}

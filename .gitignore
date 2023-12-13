@@ -1,0 +1,7 @@
+.env
+**template.yaml
+.DS_Store
+
+helm/.ideas
+helm/stackstate
+secrets/*

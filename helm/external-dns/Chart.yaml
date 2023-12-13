@@ -1,0 +1,7 @@
+apiVersion: v2
+name: external-dns
+description: A custom parent Helm chart for external-dns
+dependencies:
+- name: external-dns
+  version: &chartVersion 1.13.1
+version: *chartVersion

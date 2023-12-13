@@ -1,0 +1,32 @@
+labels: &labels
+  env: prod
+hostname: &hostname heimdall.mpierce.net
+
+heimdall:
+  common:
+    global:
+      labels: *labels
+    podLabels: *labels
+    service:
+      main:
+        type: LoadBalancer
+        annotations:
+          external-dns.alpha.kubernetes.io/hostname: heimdall.mpierce.net.
+          external-dns.alpha.kubernetes.io/ttl: "10"
+
+    ingress:
+      main:
+        enabled: true
+        annotations:
+          traefik.ingress.kubernetes.io/router.entrypoints: websecure
+          traefik.ingress.kubernetes.io/router.tls: "true"
+          cert-manager.io/cluster-issuer: letsencrypt
+        ingressClassName: traefik
+        hosts:
+          - host: *hostname
+            paths:
+              - path: /
+        tls:
+          - secretName: heimdall-service-secret
+            hosts:
+              - *hostname

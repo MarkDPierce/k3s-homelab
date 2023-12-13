@@ -1,0 +1,11 @@
+cert-manager:
+  global:
+    commonLabels:
+      env: dev
+    logLevel: 6
+
+  replicaCount: 1
+
+  podDisruptionBudget:
+    enabled: true
+    minAvailable: 1

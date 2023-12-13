@@ -1,0 +1,113 @@
+labels: &labels
+  env: test
+
+fqdnam: &fqdnam alertmanager.dev.mpierce.net
+fqdngr: &fqdngr grafana.dev.mpierce.net
+fqdnprom: &fqdnprom prometheus.dev.mpierce.net
+
+kube-prometheus-stack:
+  commonLabels: *labels
+
+  alertmanager:
+    ingress:
+      enabled: true
+      ingressClassName: traefik
+      serviceName: prom-stack-alertmanager
+      annotations:
+        traefik.ingress.kubernetes.io/router.entrypoints: websecure
+        traefik.ingress.kubernetes.io/router.tls: "true"
+        cert-manager.io/cluster-issuer: letsencrypt
+      hosts:
+        - alertmanager.dev.mpierce.net
+      paths:
+        - /
+      pathType: ImplementationSpecific
+      tls:
+        - secretName: alertmanager-service-secret
+          hosts:
+            - alertmanager.dev.mpierce.net
+
+    service:
+      type: LoadBalancer
+      annotations:
+        external-dns.alpha.kubernetes.io/hostname: alertmanager.dev.mpierce.net.
+        external-dns.alpha.kubernetes.io/ttl: "10"
+
+    alertmanagerSpec:
+      storage:
+        volumeClaimTemplate:
+          spec:
+            storageClassName: longhorn
+            resources:
+              requests:
+                storage: 1Gi
+      externalUrl: http://alertmanager.dev.mpierce.net
+
+  grafana:
+    adminPassword: grafana
+    ingress:
+      enabled: true
+      annotations:
+        traefik.ingress.kubernetes.io/router.entrypoints: websecure
+        traefik.ingress.kubernetes.io/router.tls: "true"
+        cert-manager.io/cluster-issuer: letsencrypt
+      hosts:
+        - *fqdngr
+      tls:
+        - secretName: grafana-secret-tls
+          hosts:
+            - *fqdngr
+
+    service:
+      type: LoadBalancer
+      appProtocol: http
+      annotations:
+        external-dns.alpha.kubernetes.io/hostname: grafana.dev.mpierce.net.
+        external-dns.alpha.kubernetes.io/ttl: "10"
+
+  prometheus:
+    prometheusSpec:
+      externalUrl: http://prometheus.dev.mpierce.net
+      retention: 3h
+      storageSpec:
+        volumeClaimTemplate:
+          spec:
+            storageClassName: longhorn
+            resources:
+              requests:
+                storage: 5Gi
+
+    ingress:
+      enabled: true
+      ingressClassName: traefik
+      serviceName: prom-stack-prometheus
+      annotations:
+        traefik.ingress.kubernetes.io/router.entrypoints: websecure
+        traefik.ingress.kubernetes.io/router.tls: "true"
+        cert-manager.io/cluster-issuer: letsencrypt
+      hosts:
+        - *fqdnprom
+      paths:
+        - /
+      pathType: ImplementationSpecific
+      tls:
+        - secretName: prometheus-service-secret
+          hosts:
+            - *fqdnprom
+
+    service:
+      type: LoadBalancer
+      annotations:
+        external-dns.alpha.kubernetes.io/hostname: prometheus.dev.mpierce.net.
+        external-dns.alpha.kubernetes.io/ttl: "10"
+
+  prometheusOperator:
+    admissionWebhooks:
+      enabled: false
+    service:
+      annotations:
+        external-dns.alpha.kubernetes.io/hostname: prometheusoperator.dev.mpierce.net.
+        external-dns.alpha.kubernetes.io/ttl: "10"
+      type: LoadBalancer
+    tls:
+      enabled: false

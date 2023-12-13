@@ -1,0 +1,7 @@
+apiVersion: v2
+name: traefik
+description: A custom parent Helm chart for traefik 
+dependencies:
+- name: traefik
+  version: &chartVersion 25.0.0
+version: *chartVersion

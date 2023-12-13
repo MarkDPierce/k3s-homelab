@@ -1,0 +1,7 @@
+apiVersion: v2
+name: metallb
+description: A custom parent Helm chart for metallb
+dependencies:
+- name: metallb
+  version: &chartVersion 0.13.12
+version: *chartVersion

@@ -1,0 +1,4 @@
+apiVersion: v2
+name: applications
+description: A Helm chart for defining the apps that ArgoCD needs to deploy
+version: 1.0.0

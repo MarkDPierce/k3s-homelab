@@ -1,0 +1,21 @@
+heimdall:
+  persistence:
+    config:
+      enabled: true
+  ingress:
+    main:
+      enabled: true
+
+  common:
+    persistence:
+      config:
+        enabled: true
+        storageClassName: longhorn
+
+    resources:
+      limits:
+        cpu: 100m
+        memory: 128Mi
+      requests:
+        cpu: 100m
+        memory: 128Mi

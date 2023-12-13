@@ -1,0 +1,17 @@
+{{- range .Values.jobs }}
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: {{ $.Release.Name }}-{{ .name }}-job
+spec:
+  template:
+    metadata:
+      name: {{ $.Release.Name }}-{{ .name }}-job
+    spec:
+      containers:
+        - name: {{ $.Release.Name }}-{{ .name }}-container
+          image: {{ .containerImage }}
+          # Add any additional container configuration here
+      restartPolicy: Never
+  # Add any additional job configuration here
+{{- end }}

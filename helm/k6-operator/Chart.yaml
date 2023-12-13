@@ -1,0 +1,7 @@
+apiVersion: v2
+name: k6-operator
+description: A custom parent Helm chart for k6-operator
+dependencies:
+- name: k6-operator
+  version: &chartVersion 2.0.0
+version: *chartVersion

@@ -1,0 +1,87 @@
+labels: &labels
+  env: prod
+
+fqdnam: &fqdnam alertmanager.mpierce.net
+fqdngr: &fqdngr grafana.mpierce.net
+fqdnprom: &fqdnprom prometheus.mpierce.net
+
+kube-prometheus-stack:
+  commonLabels: *labels
+
+  alertmanager:
+    ingress:
+      enabled: true
+      ingressClassName: traefik
+      annotations:
+        traefik.ingress.kubernetes.io/router.entrypoints: websecure
+        traefik.ingress.kubernetes.io/router.tls: "true"
+        cert-manager.io/cluster-issuer: letsencrypt
+      hosts:
+        - *fqdnam
+      tls:
+        - secretName: alertmanager-service-secret
+          hosts:
+            - *fqdnam
+
+    service:
+      type: LoadBalancer
+      annotations:
+        external-dns.alpha.kubernetes.io/hostname: alertmanager.mpierce.net.
+        external-dns.alpha.kubernetes.io/ttl: "10"
+    alertmanagerSpec:
+      storage:
+        volumeClaimTemplate:
+          spec:
+            storageClassName: longhorn
+            resources:
+              requests:
+                storage: 1Gi
+      externalUrl: http://alertmanager.mpierce.net
+
+  grafana:
+    adminPassword: grafana
+    ingress:
+      enabled: true
+      ingressClassName: traefik
+      annotations:
+        traefik.ingress.kubernetes.io/router.entrypoints: websecure
+        traefik.ingress.kubernetes.io/router.tls: "true"
+        cert-manager.io/cluster-issuer: letsencrypt
+      hosts:
+        - *fqdngr
+      tls:
+        - secretName: grafana-service-secret
+          hosts:
+            - *fqdngr
+
+  prometheus:
+    prometheusSpec:
+      externalUrl: http://prometheus.mpierce.net
+      enableRemoteWriteReceiver: true
+      retention: 1d
+      storageSpec:
+        volumeClaimTemplate:
+          spec:
+            storageClassName: longhorn
+            resources:
+              requests:
+                storage: 1Gi
+    ingress:
+      enabled: true
+      ingressClassName: traefik
+      annotations:
+        traefik.ingress.kubernetes.io/router.entrypoints: websecure
+        traefik.ingress.kubernetes.io/router.tls: "true"
+        cert-manager.io/cluster-issuer: letsencrypt
+      hosts:
+        - *fqdnprom
+      tls:
+        - secretName: prometheus-service-secret
+          hosts:
+            - *fqdnprom
+
+    service:
+      type: LoadBalancer
+      annotations:
+        external-dns.alpha.kubernetes.io/hostname: prometheus.mpierce.net.
+        external-dns.alpha.kubernetes.io/ttl: "10"

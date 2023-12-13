@@ -1,0 +1,7 @@
+apiVersion: v2
+name: heimdall
+description: A custom parent Helm chart for heimdall
+dependencies:
+- name: heimdall
+  version: &chartVersion 8.5.2
+version: *chartVersion

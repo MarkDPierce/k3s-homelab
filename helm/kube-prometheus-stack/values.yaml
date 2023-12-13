@@ -1,0 +1,113 @@
+ns: &ns kube-prometheus-stack
+
+kube-prometheus-stack:
+  namespaceOverride: *ns
+
+#  nameOverride: prom-stack
+  fullnameOverride: prom-stack
+
+  prometheus-windows-exporter:
+    prometheus:
+      monitor:
+        enabled: false
+
+  alertmanager:
+    enabled: true
+    alertmanagerSpec:
+      resources:
+        requests:
+          memory: 400Mi
+
+  grafana:
+    enabled: true
+    fullnameOverride: grafana
+    #nameOverride: grafana
+    adminuser: mpierce
+    namespaceOverride: *ns
+    plugins:
+      - grafana-piechart-panel
+      - grafana-clock-panel
+    sidecar:
+      datasources:
+        enabled: true
+        url: http://prom-stack-prometheus.kube-prometheus-stack.svc.cluster.local:9090
+    testFramework:
+      enabled: false
+
+  kubernetesServiceMonitors:
+    enabled: true
+
+  kubeApiServer:
+    enabled: true
+
+  kubelet:
+    enabled: true
+
+  kubeControllerManager:
+    # Namespace issues
+    enabled: false
+
+  # Deployed with K3s
+  coreDns:
+    # Namespace issues
+    enabled: true
+
+  kubeDns:
+    enabled: false
+
+  kubeEtcd:
+    enabled: false
+
+  kubeScheduler:
+    # Namespace issues
+    enabled: false
+
+  kubeProxy:
+    # Namespace issues
+    enabled: false
+
+  kubeStateMetrics:
+    enabled: true
+  kube-state-metrics:
+    namespaceOverride: *ns
+    nameOverride: kube-state-metrics
+    fullnameOverride: kube-state-metrics
+
+  nodeExporter:
+    enabled: true
+    operatingSystems:
+      darwin:
+        enabled: false
+
+  prometheus-node-exporter:
+    namespaceOverride: *ns
+    fullnameOverride: node-exporter
+    nameOverride: node-exporter
+
+  prometheusOperator:
+    enabled: true
+    dnsConfig:
+      nameservers:
+        - 192.168.178.104
+
+  prometheus:
+    enabled: true
+    additionalServiceMonitors:
+      - name: traefik
+        jobLabel: "traefik"
+        selector:
+          matchLabels:
+            component: metrics
+            instance: traefik-traefik
+            name: traefik
+        namespaceSelector:
+          matchNames:
+            - traefik
+        endpoints:
+          - port: metrics
+            path: /metrics
+    prometheusSpec:
+      enableRemoteWriteReceiver: true
+      resources:
+        requests:
+          memory: 400Mi

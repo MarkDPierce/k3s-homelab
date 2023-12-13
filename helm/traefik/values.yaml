@@ -1,0 +1,86 @@
+traefik:
+  # Enabling prometheus metrics and access logs
+  # Enable access log
+  logs:
+    access:
+      enabled: true
+      format: json
+  # This is translated to traefik parameters
+  # "--metrics.prometheus=true"
+  # "--accesslog"
+  # "--accesslog.format=json"
+
+  globalArguments:
+    - "--global.checknewversion"
+
+  autoscaling:
+    enabled: true
+    minReplicas: 1
+    maxReplicas: 10
+    metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 80
+    - type: Resource
+      resource:
+        name: memory
+        target:
+          type: Utilization
+          averageUtilization: 80
+    behavior:
+      scaleDown:
+        stabilizationWindowSeconds: 5
+        policies:
+        - type: Pods
+          value: 1
+          periodSeconds: 5
+
+  # Print access log to file instead of stdout
+  additionalArguments:
+    - "--accesslog.filepath=/data/access.log"
+
+  metrics:
+    prometheus:
+      disableAPICheck: true
+      entryPoint: metrics
+      service:
+        enabled: true
+      serviceMonitor:
+        jobLabel: traefik
+
+  deployment:
+    revisionHistoryLimit: 3
+    # Adding access logs sidecar
+    #additionalContainers:
+    #  - name: stream-accesslog
+    #    image: busybox
+    #    args:
+    #    - /bin/sh
+    #    - -c
+    #    - tail -n+1 -F /data/access.log
+    #    imagePullPolicy: Always
+    #    terminationMessagePath: /dev/termination-log
+    #    terminationMessagePolicy: File
+    #    volumeMounts:
+    #   - mountPath: /data
+    #      name: data
+
+  providers:
+    # Enable cross namespace references
+    kubernetesCRD:
+      enabled: true
+      allowCrossNamespace: true
+      allowExternalNameServices: true
+    # Enable published service
+    kubernetesIngress:
+      publishedService:
+        enabled: true
+
+  ingressRoute:
+    tls:
+      secretName: cloudflare-api-token-secret
+    dashboard:
+      enabled: true

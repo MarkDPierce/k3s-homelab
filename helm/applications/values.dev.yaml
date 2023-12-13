@@ -1,0 +1,64 @@
+project: homelab
+repo: git@github.com:MarkDPierce/k3s-homelab.git
+branch: master
+
+# Trying out ArgoCDs multi source feature.
+
+apps:
+  traefik:
+    valuesFiles:
+      - values.yaml
+      - values.dev.yaml
+
+  cert-manager:
+    valueFiles:
+      - values.yaml
+      - values.dev.yaml
+      - secrets.yaml
+    upstream:
+      repo: https://charts.jetstack.io
+      targetRevision: v1.13.3
+
+  sockshop:
+    valueFiles:
+      - values.yaml
+
+  external-dns:
+    valueFiles:
+      - values.yaml
+      - secrets.yaml
+    upstream:
+      repo: https://kubernetes-sigs.github.io/external-dns
+      targetRevision: "1.13.1"
+
+  metallb:
+    valueFiles:
+      - values.yaml
+      - values.dev.yaml
+    upstream:
+      repo: https://metallb.github.io/metallb
+      targetRevision: "0.13.12"
+
+  longhorn:
+    valueFiles:
+      - values.yaml
+      - values.dev.yaml
+    upstream:
+      repo: https://charts.longhorn.io
+      targetRevision: "1.5.3"
+
+  heimdall:
+    valueFiles:
+      - values.yaml
+      - values.dev.yaml
+
+  kube-prometheus-stack:
+    valueFiles:
+      - values.yaml
+      - values.dev.yaml
+      - secrets.yaml
+      - prometheus.yaml
+      - alertmanager.yaml
+    upstream:
+      repo: hhttps://prometheus-community.github.io/helm-charts
+      targetRevision: "55.4.0"

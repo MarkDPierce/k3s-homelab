@@ -1,0 +1,5 @@
+creation_rules:
+  # any other secrets, eg api keys
+  - age: age1yr9galfuyzx7ulsk8l24gmjkydp7ntlu2qlsh6cmwq5l60p583ysm6ntz0
+  - gcp_kms: "projects/mdp-synology/locations/global/keyRings/sops/cryptoKeys/primarykey"
+  

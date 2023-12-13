@@ -1,0 +1,4 @@
+external-dns:
+  fullnameOverride: external-dns
+  provider: pihole
+  registry: noop

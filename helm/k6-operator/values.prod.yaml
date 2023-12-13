@@ -1,0 +1,6 @@
+labels: &labels
+  env: test
+
+k6-operator:
+  customLabels: *labels
+  podLabels: *labels
