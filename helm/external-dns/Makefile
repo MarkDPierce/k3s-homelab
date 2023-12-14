@@ -1,6 +1,6 @@
 NS := external-dns
 CHARTVERSION := 1.13.1
-VALUES := -f values.yaml
+VALUES := -f values.yaml -f secrets://secrets.yaml
 
 .PHONY: unpack
 unpack:
