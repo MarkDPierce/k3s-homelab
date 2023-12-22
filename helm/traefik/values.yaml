@@ -14,7 +14,7 @@ traefik:
     - "--global.checknewversion"
 
   autoscaling:
-    enabled: true
+    enabled: false
     minReplicas: 1
     maxReplicas: 10
     metrics:
@@ -47,7 +47,7 @@ traefik:
       disableAPICheck: true
       entryPoint: metrics
       service:
-        enabled: true
+        enabled: false
       serviceMonitor:
         jobLabel: traefik
 

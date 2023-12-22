@@ -1,4 +1,4 @@
-NS := metallb-system
+NS := metallb
 CHARTVERSION := 0.13.12
 VALUES := -f values.yaml -f values.$(ENV).yaml
 

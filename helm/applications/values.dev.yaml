@@ -14,7 +14,7 @@ apps:
     valueFiles:
       - values.yaml
       - values.dev.yaml
-      - secrets://secrets.yaml
+      - secrets.yaml
 
   sockshop:
     valueFiles:
