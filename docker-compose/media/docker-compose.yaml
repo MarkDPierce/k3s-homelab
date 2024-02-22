@@ -1,0 +1,344 @@
+version: '3.8'
+
+networks:
+  docker-exposed:
+    external: true
+    name: docker-exposed
+    driver: bridge
+  docker-nonexposed:
+    internal: true
+    driver: bridge
+
+services:
+  # Media Server
+  plex:
+    image: plexinc/pms-docker:latest
+    container_name: plex
+    hostname: plex
+    restart: unless-stopped
+    networks:
+      - docker-exposed
+      - docker-nonexposed
+    ports:
+      - ${PLEX_PORT}:${PLEX_PORT}/tcp
+      - 8324:8324/tcp
+      - 32469:32469/tcp
+      - 1900:1900/udp
+      - 32410:32410/udp
+      - 32412:32412/udp
+      - 32413:32413/udp
+      - 32414:32414/udp
+    environment:
+      - PLEX_UID=${PUID}
+      - PLEX_GID=${PGID}
+      - TZ=${TZ}
+      # https://www.plex.tv/claim
+      - PLEX_CLAIM=${PLEX_CLAIM_TOKEN}
+      - ADVERTISE_IP=http://${PLEX_IP_ADDR}:${PLEX_PORT}/
+      - ALLOWED_NETWORKS=192.168.178.0/24
+    volumes:
+      - ./srv/plex/database:/config
+      - .srv/data/plex:/data/media
+    labels:
+      - "env=prod"
+      - "com.centurylinklabs.watchtower.enable=true"
+      - "traefik.enable=true"
+      - "traefik.http.routers.plex.entrypoints=https"
+      - "traefik.http.routers.plex.rule=Host(`${FQDN_PLEX}`)"
+      - "traefik.http.routers.plex.service=plex"
+      - "traefik.http.routers.plex.tls=true"
+      - "traefik.http.services.plex.loadbalancer.server.port=${PLEX_PORT}"
+      - "traefik.http.routers.plex_http.entrypoints=http"
+      - "traefik.http.routers.plex_http.rule=Host(`${FQDN_PLEX}`)"
+    deploy:
+      resources:
+        limits:
+          memory: 3g
+        reservations:
+          memory: 500m
+
+  # Series Manager    
+  sonarr:
+    image: linuxserver/sonarr:latest
+    container_name: sonarr
+    hostname: sonarr
+    restart: unless-stopped
+    networks:
+      - docker-exposed
+      - docker-nonexposed
+    ports:
+      - ${SONARR_PORT}:${SONARR_PORT}
+    environment:
+      - PUID=${PUID}
+      - PGID=${PGID}
+      - TZ=${TZ}
+    volumes:
+      - ./srv/sonarr:/config
+      - /volume1/data/:/data
+    labels:
+      - "env=prod"
+      - "com.centurylinklabs.watchtower.enable=true"
+      - "traefik.enable=true"
+      - "traefik.http.routers.sonarr.entrypoints=https"
+      - "traefik.http.routers.sonarr.rule=Host(`${FQDN_SONARR}`)"
+      - "traefik.http.routers.sonarr.service=sonarr"
+      - "traefik.http.routers.sonarr.tls=true"
+      - "traefik.http.services.sonarr.loadbalancer.server.port=${SONARR_PORT}"
+      - "traefik.http.routers.sonarr_http.entrypoints=http"
+      - "traefik.http.routers.sonarr_http.rule=Host(`${FQDN_SONARR}`)"
+    deploy:
+      resources:
+        limits:
+          memory: 800m
+        reservations:
+          memory: 400m
+
+  # Movies Manager
+  radarr:
+    image: linuxserver/radarr:latest
+    container_name: radarr
+    hostname: radarr
+    restart: unless-stopped
+    networks:
+      - docker-exposed
+      - docker-nonexposed
+    ports:
+      - ${RADARR_PORT}:${RADARR_PORT}
+    environment:
+      - PUID=${PUID}
+      - PGID=${PGID}
+      - TZ=${TZ}    
+    volumes:
+      - ./srv/radarr:/config
+      - ./srv/data/radarr:/data
+    labels:
+      - "env=prod"
+      - "com.centurylinklabs.watchtower.enable=true"
+      - "traefik.enable=true"
+      - "traefik.http.routers.radarr.entrypoints=https"
+      - "traefik.http.routers.radarr.rule=Host(`${FQDN_RADARR}`)"
+      - "traefik.http.routers.radarr.service=radarr"
+      - "traefik.http.routers.radarr.tls=true"
+      - "traefik.http.services.radarr.loadbalancer.server.port=${RADARR_PORT}"
+      - "traefik.http.routers.radarr_http.entrypoints=http"
+      - "traefik.http.routers.radarr_http.rule=Host(`${FQDN_RADARR}`)"
+    deploy:
+      resources:
+        limits:
+          memory: 800m
+        reservations:
+          memory: 400m
+          
+  # Plex stats
+  tautulli:
+    image: linuxserver/tautulli:latest
+    container_name: tautulli
+    hostname: tautulli
+    restart: unless-stopped
+    networks:
+      - docker-exposed
+      - docker-nonexposed
+    ports:
+      - ${TAUTULLI_PORT}:${TAUTULLI_PORT}
+    environment:
+      - PUID=${PUID}
+      - PGID=${PGID}
+      - TZ=${TZ}
+    volumes:
+      - ./srv/tautulli:/config
+    labels:
+      - "env=prod"
+      - "com.centurylinklabs.watchtower.enable=true"
+      - "traefik.enable=true"
+      - "traefik.http.routers.tautulli.entrypoints=https"
+      - "traefik.http.routers.tautulli.rule=Host(`${FQDN_TAUTULLI}`)"
+      - "traefik.http.routers.tautulli.service=tautulli"
+      - "traefik.http.routers.tautulli.tls=true"
+      - "traefik.http.services.tautulli.loadbalancer.server.port=${TAUTULLI_PORT}"
+      - "traefik.http.routers.tautulli_http.entrypoints=http"
+      - "traefik.http.routers.tautulli_http.rule=Host(`${FQDN_TAUTULLI}`)"
+    deploy:
+      resources:
+        limits:
+          memory: 100m
+        reservations:
+          memory: 70m
+
+  # Subtittles
+  bazarr:
+    image: linuxserver/bazarr:latest
+    container_name: bazarr
+    hostname: bazarr
+    restart: unless-stopped
+    networks:
+      - docker-exposed
+      - docker-nonexposed
+    ports:
+      - ${BAZARR_PORT}:${BAZARR_PORT}
+    environment:
+      - PUID=${PUID}
+      - PGID=${PGID}
+      - TZ=${TZ}
+    volumes:
+      - ./srv/bazarr:/config
+      - ./srv/data/bazarr:/data
+    labels:
+      - "env=prod"
+      - "com.centurylinklabs.watchtower.enable=true"
+      - "traefik.enable=true"
+      - "traefik.http.routers.bazarr.entrypoints=https"
+      - "traefik.http.routers.bazarr.rule=Host(`${FQDN_BAZARR}`)"
+      - "traefik.http.routers.bazarr.service=bazarr"
+      - "traefik.http.routers.bazarr.tls=true"
+      - "traefik.http.services.bazarr.loadbalancer.server.port=${BAZARR_PORT}"
+      - "traefik.http.routers.bazarr_http.entrypoints=http"
+      - "traefik.http.routers.bazarr_http.rule=Host(`${FQDN_BAZARR}`)"
+    deploy:
+      resources:
+        limits:
+          memory: 250m
+        reservations:
+          memory: 150m
+
+  # Music
+  lidarr:
+    image: linuxserver/lidarr:latest
+    container_name: lidarr
+    hostname: lidarr
+    restart: unless-stopped
+    networks:
+      - docker-exposed
+      - docker-nonexposed
+    ports:
+      - ${LIDARR_PORT}:${LIDARR_PORT}
+    environment:
+        - PUID=${PUID}
+        - PGID=${PGID}
+        - TZ=${TZ}
+    volumes:
+      - ./srv/data/lidarr:/data
+      - ./srv/lidarr:/config
+    labels:
+      - "env=prod"
+      - "com.centurylinklabs.watchtower.enable=true"
+      - "traefik.enable=true"
+      - "traefik.http.routers.lidarr.entrypoints=https"
+      - "traefik.http.routers.lidarr.rule=Host(`${FQDN_LIDARR}`)"
+      - "traefik.http.routers.lidarr.service=lidarr"
+      - "traefik.http.routers.lidarr.tls=true"
+      - "traefik.http.services.lidarr.loadbalancer.server.port=${LIDARR_PORT}"
+      - "traefik.http.routers.lidarr_http.entrypoints=http"
+      - "traefik.http.routers.lidarr_http.rule=Host(`${FQDN_LIDARR}`)"
+    deploy:
+      resources:
+        limits:
+          memory: 400m
+        reservations:
+          memory: 200m
+
+  # Books
+  readarr:
+    image: linuxserver/readarr:develop
+    container_name: readarr
+    hostname: readarr
+    restart: unless-stopped
+    networks:
+      - docker-exposed
+      - docker-nonexposed
+    ports:
+        - ${READARR_PORT}:${READARR_PORT}
+    environment:
+        - PUID=${PUID}
+        - PGID=${PGID}
+        - TZ=${TZ}
+    volumes:
+      - ./srv/readarr:/config
+      - ./srv/data/readarr:/data
+    labels:
+      - "env=prod"
+      - "com.centurylinklabs.watchtower.enable=true"
+      - "traefik.enable=true"
+      - "traefik.http.routers.readarr.entrypoints=https"
+      - "traefik.http.routers.readarr.rule=Host(`${FQDN_READARR}`)"
+      - "traefik.http.routers.readarr.service=readarr"
+      - "traefik.http.routers.readarr.tls=true"
+      - "traefik.http.services.readarr.loadbalancer.server.port=${READARR_PORT}"
+      - "traefik.http.routers.readarr_http.entrypoints=http"
+      - "traefik.http.routers.readarr_http.rule=Host(`${FQDN_READARR}`)"
+    deploy:
+      resources:
+        limits:
+          memory: 350m
+        reservations:
+          memory: 150m
+
+  # Prowlarr
+  prowlarr:
+    image: lscr.io/linuxserver/prowlarr:latest
+    container_name: prowlarr
+    hostname: prowlarr
+    restart: unless-stopped
+    networks:
+      - docker-exposed
+      - docker-nonexposed
+    ports:
+      - ${PROWLARR_PORT}:${PROWLARR_PORT}
+    environment:
+      - PUID=${PUID}
+      - PGID=${PGID}
+      - TZ=${TZ}
+    volumes:
+      - ./srv/prowlarr:/config
+      - ./srv/data/prowlarr:/data
+    labels:
+      - "env=prod"
+      - "com.centurylinklabs.watchtower.enable=true"
+      - "traefik.enable=true"
+      - "traefik.http.routers.prowlarr.entrypoints=https"
+      - "traefik.http.routers.prowlarr.rule=Host(`${FQDN_PROWLARR}`)"
+      - "traefik.http.routers.prowlarr.service=prowlarr"
+      - "traefik.http.routers.prowlarr.tls=true"
+      - "traefik.http.services.prowlarr.loadbalancer.server.port=${PROWLARR_PORT}"
+      - "traefik.http.routers.prowlarr_http.entrypoints=http"
+      - "traefik.http.routers.prowlarr_http.rule=Host(`${FQDN_PROWLARR}`)"
+    deploy:
+      resources:
+        limits:
+          memory: 450m
+        reservations:
+          memory: 200m
+
+  # Jellyseerr
+  jellyseerr:
+    image: fallenbagel/jellyseerr
+    container_name: jellyseerr
+    hostname: jellyseerr
+    restart: unless-stopped
+    networks:
+      - docker-exposed
+      - docker-nonexposed
+    ports:
+      - ${JELLYSEERR_PORT}:${JELLYSEERR_PORT}
+    environment:
+      - PUID=${PUID}
+      - PGID=${PGID}
+      - TZ=${TZ}
+    volumes:
+      - ./srv/jellyseerr:/app/config
+    labels:
+      - "env=prod"
+      - "com.centurylinklabs.watchtower.enable=true"
+      - "traefik.enable=true"
+      - "traefik.http.routers.jellyseerr.entrypoints=https"
+      - "traefik.http.routers.jellyseerr.rule=Host(`${FQDN_JELLYSEERR}`)"
+      - "traefik.http.routers.jellyseerr.service=jellyseerr"
+      - "traefik.http.routers.jellyseerr.tls=true"
+      - "traefik.http.services.jellyseerr.loadbalancer.server.port=${JELLYSEERR_PORT}"
+      - "traefik.http.routers.jellyseerr_http.entrypoints=http"
+      - "traefik.http.routers.jellyseerr_http.rule=Host(`${FQDN_JELLYSEERR}`)"
+    deploy:
+      resources:
+        limits:
+          memory: 400m
+        reservations:
+          memory: 200m

@@ -1,0 +1,27 @@
+version: "3.9"
+
+networks:
+  docker-exposed:
+    external: true
+    name: docker-exposed
+    driver: bridge
+
+services:
+  homehiem:
+    image: ghcr.io/markdpierce/privatelab/enshrouded:v1.0.0@sha256:1ad0a96afbde66879408995d6f5486dd3ab1b3211e4801ec3dd0835ae24c773e
+    container_name: "enshrouded-homeheim"
+    restart: unless-stopped
+    stop_grace_period: 2m
+    networks:
+      - docker-exposed
+    ports:
+      - "${PORT}:15636/udp"
+      - "15637:15637/udp"
+    volumes:
+      - "./srv/homeheim/data:/home/steam/enshrouded/savegame"
+      - "./srv/homeheim/logs:/home/steam/enshrouded/logs"
+    env_file:
+      - ./homeheim.env
+    labels:
+      - "game=enshrouded"
+      - "env=prod"

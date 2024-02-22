@@ -1,0 +1,50 @@
+version: '3.8'
+
+networks:
+  docker-exposed:
+    external: true
+    name: docker-exposed
+    driver: bridge
+
+services:
+  dashy:
+    image: lissy93/dashy:latest
+    container_name: Dashy
+    hostname: dashy
+    restart: unless-stopped
+    networks:
+      - docker-exposed
+    ports:
+      - 4000:80
+    volumes:
+      - ./srv/conf.yml:/app/public/conf.yml
+      - ./srv/homelab.yml:/app/public/monitoring.yml
+      - ./srv/monitoring.yml:/app/public/homelab.yml
+      - ./srv/dashy_conf.yml:/app/public/dashy_conf.yml
+      - ./srv/item-icons:/app/public/item-icons
+    environment:
+      - NODE_ENV=production
+      - UID=${PUID}
+      - GID=${PGID}
+    healthcheck:
+      test: ['CMD', 'node', '/app/services/healthcheck']
+      interval: 1m30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    labels:
+      - "env=prod"
+      - com.centurylinklabs.watchtower.enable=true
+      - "traefik.enable=true"
+      - "traefik.http.routers.dashy.entrypoints=https"
+      - "traefik.http.routers.dashy.rule=Host(`${HOSTURL}`)"
+      - "traefik.http.routers.dashy.service=dashy"
+      - "traefik.http.routers.dashy.tls=true"
+      - "traefik.http.services.dashy.loadbalancer.server.port=80"
+    deploy:
+      resources:
+        limits:
+          memory: 100m
+          cpus: "0.60"
+        reservations:
+          memory: 70m

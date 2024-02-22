@@ -1,0 +1,104 @@
+version: "3.8"
+
+networks:
+  docker-exposed:
+    external: true
+    name: docker-exposed
+    driver: bridge
+  dns-net:
+    name: dns-net
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.13.0.0/16
+
+services:
+  pihole:
+    image: pihole/pihole:latest
+    container_name: pihole
+    hostname: pihole
+    restart: unless-stopped
+    cap_add:
+      - NET_ADMIN
+    profiles:
+      - pihole
+    networks:
+      docker-exposed: {}
+      dns-net:
+        ipv4_address: 172.13.0.2
+    ports:
+      - "${HOST_IP}:53:53/tcp"
+      - "${HOST_IP}:53:53/udp"
+      - "${HOST_IP}:853:853/udp"
+      - "${HOST_IP}:${PIHOLE_PORT}:80/tcp"
+      #- "67:67/udp" # Only required if you are using Pi-hole as your DHCP server
+    environment:
+      - "TZ=${TZ}"
+      - "WEBPASSWORD=${PIHOLE_PASSWORD}"
+      - "DNSMASQ_LISTENING=all"
+      - "PIHOLE_DNS_=8.8.8.8;8.8.4.4;208.67.222.222;208.67.220.220;1.1.1.1;1.0.0.1"
+      - "DNS_BOGUS_PRIV=true"
+      - "REV_SERVER_DOMAIN=fritz.box"
+      - "REV_SERVER_TARGET=192.168.178.1"
+      - "REV_SERVER_CIDR=192.168.178.0/24"
+      - "DNSSEC=false"
+      - "WEBTHEME=default-darker"
+      - "WEBUIBOXEDLAYOUT=boxed"
+      - "QUERY_LOGGING=true"
+      - "INTERFACE=eth0"
+      - "VIRTUAL_HOST=${FQDN}"
+      #- "PIHOLE_DOMAIN=${PIHOLE_FQDN}" #used in DHCP
+    volumes:
+      - './srv/pihole/etc-pihole:/etc/pihole'
+      - './srv/pihole/etc-dnsmasq.d:/etc/dnsmasq.d'
+    labels:
+      - "env=prod"
+      - com.centurylinklabs.watchtower.enable=false
+      - "traefik.enable=true"
+      - "traefik.http.routers.pihole.entrypoints=https"
+      - "traefik.http.routers.pihole.rule=Host(`${FQDN}`)"
+      #- "traefik.http.routers.pihole.middlewares=pihole-admin"
+      - "traefik.http.routers.pihole.service=pihole"
+      - "traefik.http.routers.pihole.tls=true"
+      - "traefik.http.services.pihole.loadbalancer.server.port=80"
+      #- "traefik.http.middlewares.pihole-admin.addprefix.prefix=/admin"
+      - "traefik.http.routers.pihole_http.entrypoints=http"
+      - "traefik.http.routers.pihole_http.rule=Host(`${FQDN}`)"
+      #- "traefik.http.middlewares=https-redirectscheme"
+    deploy:
+      resources:
+        limits:
+          memory: 500m
+        reservations:
+          memory: 500m
+
+  pihole-exporter:
+    image: ekofr/pihole-exporter:latest
+    container_name: pihole-exporter
+    hostname: pihole-exporter
+    restart: unless-stopped
+    depends_on:
+      - pihole
+    profiles:
+      - pihole
+    networks:
+      dns-net:
+        ipv4_address: 172.13.0.3
+    ports:
+      - 9617:9617
+    environment:
+      - "PIHOLE_HOSTNAME=192.168.178.104"
+      - "PIHOLE_PORT=${PIHOLE_PORT}"
+      - "PORT=9617"
+      - "INTERVAL=30s"
+      - "PIHOLE_PROTOCOL=http"
+      - "PIHOLE_API_TOKEN=${PIHOLE_API_TOKEN}"
+    labels:
+      - "env=prod"
+      - com.centurylinklabs.watchtower.enable=true
+    deploy:
+      resources:
+        limits:
+          memory: 20m
+        reservations:
+          memory: 20m

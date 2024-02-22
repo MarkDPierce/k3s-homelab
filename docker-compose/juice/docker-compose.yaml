@@ -1,0 +1,28 @@
+version: '3.9'
+
+networks:
+  docker-exposed:
+    external: true
+    name: docker-exposed
+    driver: bridge
+
+services:
+
+  monolithic:
+    image: bkimminich/juice-shop:latest
+    container_name: juice
+    hostname: juice
+    restart: unless-stopped
+    networks:
+      - docker-exposed
+    ports:
+      - 3000:3000
+    labels:
+      - "environment=prod"
+      - com.centurylinklabs.watchtower.enable=true
+    deploy:
+      resources:
+        limits:
+          memory: 512m
+        reservations:
+          memory: 512m

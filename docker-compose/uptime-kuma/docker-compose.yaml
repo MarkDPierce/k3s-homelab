@@ -1,0 +1,44 @@
+version: '3.8'
+
+networks:
+  docker-exposed:
+    external: true
+    name: docker-exposed
+    driver: bridge
+  docker-nonexposed:
+    internal: true
+    driver: bridge
+
+services:
+  uptime-kuma:
+    image: louislam/uptime-kuma
+    container_name: uptime-kuma
+    hostname: uptime-kuma
+    restart: unless-stopped
+    networks:
+      - docker-exposed
+      - docker-nonexposed
+    ports:
+      - ${UPTIME_PORT}:${UPTIME_PORT}
+    volumes:
+      - ./srv/uptime-kuma-data:/app/data
+      - /var/run/docker.sock:/var/run/docker.sock
+    dns:
+      - ${DNS}
+    labels:
+      - "env=prod"
+      - com.centurylinklabs.watchtower.enable=true
+      - "traefik.enable=true"
+      - "traefik.http.routers.uptime-kuma.entrypoints=https"
+      - "traefik.http.routers.uptime-kuma.rule=Host(`${FQDN}`)"
+      - "traefik.http.routers.uptime-kuma.service=uptime-kuma"
+      - "traefik.http.routers.uptime-kuma.tls=true"
+      - "traefik.http.services.uptime-kuma.loadbalancer.server.port=${UPTIME_PORT}"
+    deploy:
+      resources:
+        limits:
+          memory: 900m
+          cpus: "1"
+        reservations:
+          memory: 500m
+          cpus: "0.75"

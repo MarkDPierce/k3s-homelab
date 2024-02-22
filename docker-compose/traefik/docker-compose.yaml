@@ -1,0 +1,79 @@
+version: "3.9"
+
+networks:
+  docker-exposed:
+    external: true # means it is a fixed docker network created with "docker network create docker-exposed"
+    name: docker-exposed # docker create network docker-exposed
+    driver: bridge
+  docker-nonexposed:
+    internal: true # means it gets created especially for this compose and is called <dirname>_docker-nonexposed
+    driver: bridge
+
+services:
+
+  traefik:
+    image: "traefik:latest"
+    container_name: traefik
+    hostname: traefik
+    restart: unless-stopped
+    depends_on:
+      - socket-proxy
+    security_opt:
+      - no-new-privileges:true
+    environment:
+      - CF_API_EMAIL=${CF_API_EMAIL}
+      - CF_DNS_API_TOKEN=${CF_API_TOKEN}
+    ports:
+      - "80:80"
+      - "443:443"
+      - "8080:8080"
+      - "8889:8889"
+    volumes:
+      - /etc/localtime:/etc/localtime:ro
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - ./srv/data/traefik.yml:/traefik.yml:ro
+      - ./srv/data/acme.json:/acme.json
+      - ./srv/data/config.yml:/config.yml:ro
+    command:
+      - "--providers.docker=true"
+      - "--providers.docker.network=docker-exposed"
+      - "--api.insecure=true"
+      - "--api.dashboard=true"
+    networks:
+      - docker-exposed
+      - docker-nonexposed
+    labels:
+      - "env=prod"
+      - "traefik.enable=true"
+      - "com.centurylinklabs.watchtower.enable=true"
+    deploy:
+      resources:
+        limits:
+          memory: 100m
+        reservations:
+          memory: 50m
+
+  socket-proxy:
+    image: tecnativa/docker-socket-proxy
+    container_name: socket-proxy
+    restart: unless-stopped
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    environment:
+      CONTAINERS: 1
+    networks:
+      - docker-nonexposed
+    ports:
+      - "2375:2375"
+    labels:
+      - "apptype=infra"
+      - "environment=prod"
+      - "appfunction=proxy"
+      # Watchtower Update
+      - "com.centurylinklabs.watchtower.enable=true"
+    deploy:
+      resources:
+        limits:
+          memory: 10m
+        reservations:
+          memory: 6m

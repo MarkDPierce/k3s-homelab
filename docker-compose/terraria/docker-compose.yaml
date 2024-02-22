@@ -1,0 +1,42 @@
+version: '3.9'
+
+networks:
+  docker-exposed:
+    external: true
+    name: docker-exposed
+    driver: bridge
+
+services:
+  homeheim:
+    image: passivelemon/terraria-docker:latest
+    container_name: terraria-homeheim
+    hostname: terraria
+    restart: unless-stopped
+    networks:
+      - docker-exposed
+    ports:
+      - ${PORT}:7777
+    volumes:
+      - ./srv/opt/homeheim/:/opt/terraria/config/
+    env_file:
+      - homeheim.env
+    labels:
+      - "env=prod"
+      - "com.centurylinklabs.watchtower.enable=true"
+
+  hardheim:
+    image: passivelemon/terraria-docker:latest
+    container_name: terraria-hardheim
+    hostname: terraria
+    restart: unless-stopped
+    networks:
+      - docker-exposed
+    ports:
+      - ${PORT}:7777
+    volumes:
+      - ./srv/hardheim/:/opt/terraria/config/
+    env_file:
+      - hardheim.env
+    labels:
+      - "env=prod"
+      - "com.centurylinklabs.watchtower.enable=true"

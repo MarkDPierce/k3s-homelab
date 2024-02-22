@@ -1,0 +1,291 @@
+version: "3.9"
+
+networks:
+  docker-exposed:
+    external: true
+    name: docker-exposed
+    driver: bridge
+  docker-nonexposed:
+    internal: true
+    driver: bridge
+
+volumes:
+    prometheus_data: {}
+    grafana_data: {}
+
+services:
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: prometheus
+    hostname: prometheus
+    restart: unless-stopped
+    profiles:
+      - prometheus
+    networks:
+      - docker-exposed
+      - docker-nonexposed
+    ports:
+      - ${PROMETHEUS_PORT}:${PROMETHEUS_PORT}
+    volumes:
+      - ./srv/prometheus:/etc/prometheus/
+      - prometheus_data:/prometheus
+    dns:
+      - ${DNS}
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--storage.tsdb.retention.time=90d'
+      - '--web.console.libraries=/usr/share/prometheus/console_libraries'
+      - '--web.console.templates=/usr/share/prometheus/consoles'
+    labels:
+      - "env=prod"
+      - "com.centurylinklabs.watchtower.enable=true"
+      - "traefik.enable=true"
+      - "traefik.http.routers.prometheus.entrypoints=https"
+      - "traefik.http.routers.prometheus.rule=Host(`${FQDN_PROM}`)"
+      - "traefik.http.routers.prometheus.service=prometheus"
+      - "traefik.http.routers.prometheus.tls=true"
+      - "traefik.http.services.prometheus.loadbalancer.server.port=${PROMETHEUS_PORT}"
+      - "traefik.http.routers.prometheus_http.entrypoints=http"
+      - "traefik.http.routers.prometheus_http.rule=Host(`${FQDN_PROM}`)"
+    deploy:
+      resources:
+        limits:
+          memory: 1g
+        reservations:
+          memory: 750m
+
+  alertmanager:
+    image: prom/alertmanager:latest
+    container_name: alertmanager
+    hostname: alertmanager
+    restart: unless-stopped
+    profiles:
+      - prometheus
+    networks:
+      - docker-exposed
+    dns:
+      - ${DNS}
+    ports:
+      - ${AM_PORT}:${AM_PORT}
+    volumes:
+      - ./srv/alertmanager:/data/alertmanager/
+    command:
+      - '--config.file=/data/alertmanager/config.yml'
+      - '--storage.path=/alertmanager'
+      #- '--log.level=debug'
+    labels:
+      - "env=prod"
+      - "com.centurylinklabs.watchtower.enable=true"
+      - "traefik.enable=true"
+      - "traefik.http.routers.alertmanager.entrypoints=https"
+      - "traefik.http.routers.alertmanager.rule=Host(`${FQDN_AM}`)"
+      - "traefik.http.routers.alertmanager.service=alertmanager"
+      - "traefik.http.routers.alertmanager.tls=true"
+      - "traefik.http.services.alertmanager.loadbalancer.server.port=${AM_PORT}"
+      - "traefik.http.routers.alertmanager_http.entrypoints=http"
+      - "traefik.http.routers.alertmanager_http.rule=Host(`${FQDN_AM}`)"
+    deploy:
+      mode: global
+      resources:
+        limits:
+          memory: 200m
+        reservations:
+          memory: 50m
+
+  grafana:
+    image: grafana/grafana:latest
+    container_name: grafana
+    hostname: grafana
+    restart: unless-stopped
+    profiles:
+      - prometheus
+    user: "root"
+    networks:
+      - docker-exposed
+      - docker-nonexposed
+    dns:
+      - ${DNS}
+    ports:
+      - ${GRAFANA_PORT}:${GRAFANA_PORT}
+    volumes:
+      - "./srv/grafana/data:/var/lib/grafana:rw"
+      - "./srv/grafana/dashboards:/var/lib/grafana/dashboards:rw"
+      - "./srv/grafana/provisioning:/etc/grafana/provisioning:rw"
+      - "./srv/grafana/config/grafana.ini:/etc/grafana/grafana.ini:rw"
+      - "./srv/grafana/dashboards/home.json:/usr/share/grafana/public/dashboards/home.json"
+    environment:
+      - PGID=${PGID}
+      - PUID=${PUID}
+      - TZ=${TZ}
+    labels:
+      - "env=prod"
+      - "com.centurylinklabs.watchtower.enable=true"
+      - "traefik.enable=true"
+      - "traefik.http.routers.grafana.entrypoints=https"
+      - "traefik.http.routers.grafana.rule=Host(`${FQDN_GRAFANA}`)"
+      - "traefik.http.routers.grafana.service=grafana"
+      - "traefik.http.routers.grafana.tls=true"
+      - "traefik.http.services.grafana.loadbalancer.server.port=${GRAFANA_PORT}"
+      - "traefik.http.routers.grafana_http.entrypoints=http"
+      - "traefik.http.routers.grafana_http.rule=Host(`${FQDN_GRAFANA}`)"
+    deploy:
+      resources:
+        limits:
+          memory: 500m
+        reservations:
+          memory: 100m
+
+  node-exporter:
+    image: prom/node-exporter:latest
+    container_name: node-exporter
+    hostname: node-exporter
+    restart: unless-stopped
+    profiles:
+      - node
+    networks:
+      - docker-exposed
+    ports:
+      - ${NODE_EXPORTER_PORT}:${NODE_EXPORTER_PORT}
+    volumes:
+      - /proc:/host/proc:ro
+      - /sys:/host/sys:ro
+      - /:/rootfs:ro
+      - /:/host:ro,rslave
+    command:
+      - '--path.rootfs=/host'
+      - '--path.procfs=/host/proc'
+      - '--path.sysfs=/host/sys'
+      - --collector.filesystem.ignored-mount-points
+      - "^/(sys|proc|dev|host|etc|rootfs/var/lib/docker/containers|rootfs/var/lib/docker/overlay2|rootfs/run/docker/netns|rootfs/var/lib/docker/aufs)($$|/)"
+    labels:
+      - "env=prod"
+      - "com.centurylinklabs.watchtower.enable=true"
+      - "traefik.enable=true"
+      - "traefik.http.routers.node_exporter.entrypoints=https"
+      - "traefik.http.routers.node_exporter.rule=Host(`${FQDN_NE}`)"
+      - "traefik.http.routers.node_exporter.service=node_exporter"
+      - "traefik.http.routers.node_exporter.tls=true"
+      - "traefik.http.services.node_exporter.loadbalancer.server.port=${NODE_EXPORTER_PORT}"
+      - "traefik.http.routers.node_exporter_http.entrypoints=http"
+      - "traefik.http.routers.node_exporter_http.rule=Host(`${FQDN_NE}`)"
+    deploy:
+      mode: global
+      resources:
+        limits:
+          memory: 128m
+        reservations:
+          memory: 64m
+
+  cadvisor:
+    privileged: true
+    image: gcr.io/cadvisor/cadvisor
+    container_name: cadvisor
+    hostname: cadvisor
+    restart: unless-stopped
+    profiles:
+      - node
+    networks:
+      - docker-exposed
+    ports:
+      - 8082:${CA_PORT}
+    volumes:
+      - /:/rootfs:ro
+      - /var/run:/var/run:ro
+      - /sys:/sys:ro
+      - /dev/disk/:/dev/disk:ro
+      - /var/lib/docker/:/var/lib/docker:ro
+    labels:
+      - "env=prod"
+      - "com.centurylinklabs.watchtower.enable=true"
+      - "traefik.enable=true"
+      - "traefik.http.routers.cadvisor.entrypoints=https"
+      - "traefik.http.routers.cadvisor.rule=Host(`${FQDN_CA}`)"
+      - "traefik.http.routers.cadvisor.service=cadvisor"
+      - "traefik.http.routers.cadvisor.tls=true"
+      - "traefik.http.services.cadvisor.loadbalancer.server.port=${CA_PORT}"
+      - "traefik.http.routers.cadvisor_http.entrypoints=http"
+      - "traefik.http.routers.cadvisor_http.rule=Host(`${FQDN_CA}`)"
+    deploy:
+      mode: global
+      resources:
+        limits:
+          memory: 700m
+        reservations:
+          memory: 200m
+
+  dozzle:
+    image: amir20/dozzle:latest
+    container_name: dozzle
+    hostname: dozzle
+    restart: unless-stopped
+    profiles:
+      - node
+    networks:
+      - docker-exposed
+    ports:
+      - 9999:${DOZZLE_PORT}
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    labels:
+      - "env=prod"
+      - "com.centurylinklabs.watchtower.enable=true"
+      - "traefik.enable=true"
+      - "traefik.http.routers.dozzle.entrypoints=https"
+      - "traefik.http.routers.dozzle.rule=Host(`${FQDN_DOZZLE}`)"
+      - "traefik.http.routers.dozzle.service=dozzle"
+      - "traefik.http.routers.dozzle.tls=true"
+      - "traefik.http.services.dozzle.loadbalancer.server.port=${DOZZLE_PORT}"
+      - "traefik.http.routers.dozzle_http.entrypoints=http"
+      - "traefik.http.routers.dozzle_http.rule=Host(`${FQDN_DOZZLE}`)"
+    deploy:
+      mode: global
+      resources:
+        limits:
+          memory: 80m
+        reservations:
+          memory: 7m
+
+  jaeger:
+    image: jaegertracing/all-in-one
+    container_name: jaeger
+    hostname: jaeger
+    restart: unless-stopped
+    profiles:
+      - prometheus
+      - ${DNS}
+    networks:
+      - docker-exposed
+      - docker-nonexposed
+    volumes:
+      - "./srv/jaeger/jaeger-ui.json:/etc/jaeger/jaeger-ui.json"
+    command: --query.ui-config /etc/jaeger/jaeger-ui.json
+    environment:
+      - METRICS_STORAGE_TYPE=prometheus
+      - PROMETHEUS_SERVER_URL=http://prometheus:${PROMETHEUS_PORT}
+      - PROMETHEUS_QUERY_SUPPORT_SPANMETRICS_CONNECTOR=true
+      - PROMETHEUS_QUERY_NAMESPACE=span_metrics
+      - PROMETHEUS_QUERY_DURATION_UNIT=s
+      - PROMETHEUS_QUERY_NORMALIZE_CALLS=true
+      - PROMETHEUS_QUERY_NORMALIZE_DURATION=true
+    ports:
+      - "${JAEGER_PORT}:${JAEGER_PORT}"
+      - "${OTEL_PORT}:${OTEL_PORT}"
+
+  otel_collector:
+    image: otel/opentelemetry-collector-contrib
+    container_name: otel-collector
+    hostname: otel-collector
+    restart: unless-stopped
+    dns:
+      - ${DNS}
+    profiles:
+      - prometheus
+    networks:
+      - docker-exposed
+      - docker-nonexposed
+    volumes:
+      - ./srv/otel/otel-collector-config-connector.yml:/etc/otelcol/otel-collector-config.yml
+    command: --config /etc/otelcol/otel-collector-config.yml
+    depends_on:
+      - jaeger

@@ -1,0 +1,76 @@
+version: "3"
+
+networks:
+  docker-exposed:
+    external: true
+    name: docker-exposed
+    driver: bridge
+  docker-nonexposed:
+    internal: true
+    driver: bridge
+
+services:
+    postgres:
+        image: postgres:latest
+        container_name: notes-postgres
+        hostname: notes-postres
+        restart: unless-stopped
+        networks:
+            - docker-nonexposed
+        volumes:
+            - ./srv/data:/var/lib/postgresql/data
+        ports:
+            - "${POSTGRES_PORT}:${POSTGRES_PORT}"
+        environment:
+            - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+            - POSTGRES_USER=${POSTGRES_USER}
+            - POSTGRES_DB=${POSTGRES_DATABASE}
+        deploy:
+            resources:
+                limits:
+                    memory: 400m
+                reservations:
+                    memory: 200m
+        labels:
+            - "env=prod"
+            - "com.centurylinklabs.watchtower.enable=false"
+
+    joplin:
+        image: joplin/server:latest
+        container_name: joplin
+        hostname: joplin
+        restart: unless-stopped
+        networks:
+            - docker-exposed
+            - docker-nonexposed
+        depends_on:
+            - postgres
+        ports:
+            - "${APP_PORT}:${APP_PORT}"
+        environment:
+            - APP_PORT=${APP_PORT}
+            - APP_BASE_URL=${APP_BASE_URL}
+            - DB_CLIENT=${DB_CLIENT}
+            - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+            - POSTGRES_DATABASE=${POSTGRES_DATABASE}
+            - POSTGRES_USER=${POSTGRES_USER}
+            - POSTGRES_PORT=${POSTGRES_PORT}
+            - POSTGRES_HOST=${POSTGRES_HOST}
+        deploy:
+            resources:
+                limits:
+                    memory: 400m
+                reservations:
+                    memory: 200m
+        labels:
+            - "env=prod"
+            - "com.centurylinklabs.watchtower.enable=true"
+            - "traefik.enable=true"
+            - "traefik.http.routers.joplin.entrypoints=https"
+            - "traefik.http.routers.joplin.rule=Host(`joplin.mpierce.net`)"
+            - "traefik.http.routers.joplin.service=joplin"
+            - "traefik.http.routers.joplin.tls=true"
+            - "traefik.http.routers.joplin.tls.certresolver=cloudflare"
+            - "traefik.http.middlewares.sslheader.headers.customrequestheaders.X-Forwarded-Proto = http"
+            - "traefik.http.services.joplin.loadbalancer.server.port=${APP_PORT}"
+            - "traefik.http.services.joplin.loadbalancer.passhostheader=true"

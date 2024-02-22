@@ -1,0 +1,72 @@
+version: '3.8'
+
+networks:
+  docker-exposed:
+    external: true # means it is a fixed docker network created with "docker network create docker-exposed"
+    name: docker-exposed # docker create network docker-exposed
+    driver: bridge
+  docker-nonexposed:
+    internal: true # means it gets created especially for this compose and is called <dirname>_docker-nonexposed
+    driver: bridge
+
+services:
+  freshrss-db:
+    image: postgres:16@sha256:86c1b844918b818384fdc374ef42b9fa072f1a6ae44c41af9a6a7a925a4a7a71
+    container_name: freshrss-db
+    hostname: freshrss-db
+    restart: unless-stopped
+    networks:
+      - docker-nonexposed
+    volumes:
+      - ./srv/db:/var/lib/postgresql/data
+    environment:
+      - POSTGRES_USER=freshrss
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - POSTGRES_DB=freshrss
+    deploy:
+      resources:
+        limits:
+          memory: 200m
+        reservations:
+          memory: 50m
+    labels:
+      - "env=prod"
+
+  freshrss:
+    image: freshrss/freshrss:latest
+    container_name: freshrss
+    hostname: freshrss
+    restart: unless-stopped
+    networks:
+      - docker-exposed
+      - docker-nonexposed
+    depends_on:
+      - freshrss-db
+    ports:
+      - "8083:80"
+    volumes:
+      - ./srv/data:/var/www/FreshRSS/data
+      - ./srv/extensions:/var/www/FreshRSS/extensions
+    environment:
+      - CRON_MIN=*/20
+    labels:
+      - "env=prod"
+      - "com.centurylinklabs.watchtower.enable=true"
+      - traefik.enable=true
+      - traefik.http.middlewares.freshrssM1.compress=true
+      - traefik.http.middlewares.freshrssM2.headers.browserXssFilter=true
+      - traefik.http.middlewares.freshrssM2.headers.forceSTSHeader=true
+      - traefik.http.middlewares.freshrssM2.headers.frameDeny=true
+      - traefik.http.middlewares.freshrssM2.headers.referrerPolicy=no-referrer-when-downgrade
+      - traefik.http.middlewares.freshrssM2.headers.stsSeconds=31536000
+      - traefik.http.routers.freshrss.entryPoints=https
+      - traefik.http.routers.freshrss.tls.certResolver=cloudflare
+      - traefik.http.routers.freshrss.tls=true
+      - traefik.http.routers.freshrss.middlewares=freshrssM1,freshrssM2
+      - traefik.http.routers.freshrss.rule=Host(`${FQDN}`)
+    deploy:
+      resources:
+        limits:
+          memory: 500m
+        reservations:
+          memory: 150m

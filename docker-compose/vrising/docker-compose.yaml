@@ -1,0 +1,38 @@
+version: '3.9'
+
+networks:
+  docker-exposed:
+    external: true
+    name: docker-exposed
+    driver: bridge
+
+volumes:
+    server-files:
+
+services:
+  homeheim:
+    build: . # Build from Dockerfile
+    container_name: vrising-homeheim
+    hostname: vrising
+    #image: trueosiris/vrising
+    restart: unless-stopped
+    networks:
+      - docker-exposed
+    environment:
+      - TZ=Europe/Paris
+      - SERVERNAME=vrisingDocker
+    volumes:
+      - server-files:/mnt/vrising/server:rw
+      - './srv/data:/mnt/vrising/persistentdata:rw'
+    ports:
+      - '9876:9876/udp'
+      - '9877:9877/udp'
+    labels:
+      - "game=vrising"
+      - "env=prod"
+    deploy:
+      resources:
+        limits:
+          memory: 6g
+        reservations:
+          memory: 4g

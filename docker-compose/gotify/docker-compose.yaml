@@ -1,0 +1,46 @@
+version: '3.8'
+
+networks:
+  docker-exposed:
+    external: true # means it is a fixed docker network created with "docker network create docker-exposed"
+    name: docker-exposed # docker create network docker-exposed
+    driver: bridge
+
+services:
+  gotify:
+    image: gotify/server:latest
+    container_name: gotify
+    hostname: gotify
+    networks:
+      - docker-exposed
+    restart: unless-stopped
+    ports:
+      - '4443:443'
+      - '8081:80'
+    environment:
+      - TZ=${TZ}
+      - UID=${PUID}
+      - GID=${PGID}
+      - GOTIFY_DEFAULTUSER_NAME=${GOTIFY_DEFAULTUSER_NAME}
+      - GOTIFY_DEFAULTUSER_PASS=${GOTIFY_DEFAULTUSER_PASS}
+      - GOTIFY_REGISTRATION=${GOTIFY_REGISTRATION}
+      - GOTIFY_SERVER_STREAM_PINGPERIODSECONDS=${GOTIFY_SERVER_STREAM_PINGPERIODSECONDS}
+      - GOTIFY_DATABASE_DIALECT=${GOTIFY_DATABASE_DIALECT}
+    volumes:
+      - ./srv/data:/app/data
+    labels:
+      - "env=prod"
+      - com.centurylinklabs.watchtower.enable=true
+      - "traefik.enable=true"
+      - "traefik.http.routers.gotify.entrypoints=https"
+      - "traefik.http.routers.gotify.rule=Host(`${FQDN}`)"
+      - "traefik.http.routers.gotify.service=gotify"
+      - "traefik.http.routers.gotify.tls=true"
+      - "traefik.http.services.gotify.loadbalancer.server.port=80"
+    deploy:
+      resources:
+        limits:
+          memory: 100m
+          cpus: "0.10"
+        reservations:
+          memory: 50m

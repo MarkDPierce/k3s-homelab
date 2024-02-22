@@ -1,0 +1,63 @@
+version: "3.9"
+
+networks:
+  docker-exposed:
+    external: true
+    name: docker-exposed
+    driver: bridge
+
+volumes:
+    server-files:
+
+services:
+  homeheim:
+    image: ghcr.io/lloesche/valheim-server
+    container_name: valheim-homeheim
+    restart: unless-stopped
+    stop_grace_period: 2m
+    networks:
+      - docker-exposed
+    cap_add:
+      - sys_nice
+    ports: 
+      - "2456-2457:2456-2457/udp"
+    volumes: 
+      - ./srv/config_homeheim:/config
+      - server-files:/opt/valheim
+    env_file:
+      - ./homeheim.env
+    labels:
+      - "game=valheim"
+      - "env=prod"
+    deploy:
+      resources:
+        limits:
+          memory: 6g
+        reservations:
+          memory: 2g
+
+  buildheim:
+    image: ghcr.io/lloesche/valheim-server
+    container_name: valheim-buildheim
+    restart: unless-stopped
+    stop_grace_period: 2m
+    networks:
+      - docker-exposed
+    cap_add:
+      - sys_nice
+    ports: 
+      - "2458-2459:2456-2457/udp"
+    volumes: 
+      - ./srv/config_buildheim:/config
+      - server-files:/opt/valheim
+    env_file:
+      - ./buildheim.env
+    labels:
+      - "game=valheim"
+      - "env=prod"
+    deploy:
+      resources:
+        limits:
+          memory: 6g
+        reservations:
+          memory: 2g

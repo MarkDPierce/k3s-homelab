@@ -1,0 +1,83 @@
+version: "3"
+
+networks:
+  docker-exposed:
+    external: true
+    name: docker-exposed
+    driver: bridge
+
+volumes:
+    server-files:
+
+services:
+  homeheim:
+    image: ghcr.io/markdpierce/privatelab/corekeeper:v1.0.2@sha256:7b8ce77cc6e55668c12829cb86e01bc36d7de2cba1d91cc57e3f9fda599a8971
+    restart: unless-stopped
+    stop_grace_period: 2m
+    container_name: corekeeper-homeheim
+    dns:
+      - 192.168.178.104
+    networks:
+      - docker-exposed
+    volumes:
+      - server-files:/home/steam/core-keeper-dedicated
+      - ./srv/homeheim:/home/steam/core-keeper-data
+    env_file:
+      - ./homeheim.env
+    labels:
+      - "game=corekeeper"
+      - "env=prod"
+    deploy:
+      resources:
+        limits:
+          memory: 4g
+        reservations:
+          memory: 2g
+
+  buildheim:
+    image: ghcr.io/markdpierce/privatelab/corekeeper:v1.0.2@sha256:7b8ce77cc6e55668c12829cb86e01bc36d7de2cba1d91cc57e3f9fda599a8971
+    container_name: corekeeper-buildheim
+    restart: unless-stopped
+    stop_grace_period: 2m
+    networks:
+      - docker-exposed
+    dns:
+      - 192.168.178.104
+    volumes:
+      - server-files:/home/steam/core-keeper-dedicated
+      - ./srv/buildheim:/home/steam/core-keeper-data
+    env_file:
+      - ./buildheim.env
+    labels:
+      - "game=corekeeper"
+      - "env=prod"
+    deploy:
+      resources:
+        limits:
+          memory: 2g
+        reservations:
+          memory: 1g
+
+  hardheim:
+    image: ghcr.io/markdpierce/privatelab/corekeeper:v1.0.2@sha256:7b8ce77cc6e55668c12829cb86e01bc36d7de2cba1d91cc57e3f9fda599a8971
+    container_name: corekeeper-hardheim
+    restart: unless-stopped
+    stop_grace_period: 2m
+    dns:
+      - 192.168.178.104
+    networks:
+      - docker-exposed
+    volumes:
+      - server-files:/home/steam/core-keeper-dedicated
+      - ./srv/hardheim:/home/steam/core-keeper-data
+    env_file:
+      - ./hardheim.env
+    labels:
+      - "game=corekeeper"
+      - "env=prod"
+    deploy:
+      resources:
+        limits:
+          memory: 2g
+        reservations:
+          memory: 1g
