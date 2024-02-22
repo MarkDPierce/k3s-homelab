@@ -1,7 +1,19 @@
-.env
-**template.yaml
-.DS_Store
+secrets/age-key.txt
+*.env
+*.gz
 
-helm/.ideas
-helm/stackstate
-secrets/*
+# Docker-compose Ignores
+docker-compose/core-keeper/srv
+docker-compose/dashy/srv/
+docker-compose/necess/srv/
+docker-compose/traefik/srv
+docker-compose/uptime-kuma/srv
+docker-compose/vrising/srv
+docker-compose/valheim/srv
+docker-compose/media/srv
+docker-compose/monitoring/srv/grafana/data/plugins
+docker-compose/gotify/srv/data
+docker-compose/pihole/srv/pihole/etc-pihole
+docker-compose/monitoring/srv/grafana/dashboards
+docker-compose/monitoring/srv/grafana/provisioning
+docker-compose/monitoring/srv/prometheus/prometheus.yml
