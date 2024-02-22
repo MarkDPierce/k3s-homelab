@@ -1,0 +1,9 @@
+labels: &labels
+  env: dev
+
+ipPool:
+  addressPoolName: default-pool
+  IPAddressPool: 192.168.178.200-192.168.178.219
+
+metallb:
+  labels: *labels

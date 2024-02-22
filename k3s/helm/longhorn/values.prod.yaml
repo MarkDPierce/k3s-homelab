@@ -1,0 +1,13 @@
+longhorn:
+  ingress:
+    enabled: true
+    ingressClassName: traefik
+    host: &hostname longhorn.mpierce.net
+    tls: true
+    tlsSecret: longhorn-service-tls
+    path: /
+    annotations:
+        traefik.ingress.kubernetes.io/router.entrypoints: websecure
+        traefik.ingress.kubernetes.io/router.tls: "true"
+        cert-manager.io/cluster-issuer: letsencrypt
+        #cert-manager.io/common-name: *hostname

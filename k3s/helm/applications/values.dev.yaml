@@ -1,0 +1,61 @@
+project: homelab
+repo: git@github.com:MarkDPierce/privatelab.git
+branch: dev
+
+apps:
+  cert-manager:
+    valueFiles:
+      - values.yaml
+      - values.dev.yaml
+      - secrets://secrets.yaml
+
+  external-dns:
+    valueFiles:
+      - values.yaml
+      - secrets://secrets.yaml
+
+  heimdall:
+    valueFiles:
+      - values.yaml
+      - values.dev.yaml
+
+  kube-prometheus-stack:
+    valueFiles:
+      - values.yaml
+      - values.dev.yaml
+
+  longhorn:
+    valueFiles:
+      - values.yaml
+      - values.dev.yaml
+  
+  metallb:
+    valueFiles:
+      - values.yaml
+      - values.dev.yaml
+    ignoreDifferences:
+      - group: "apiextensions.k8s.io"
+        kind: CustomResourceDefinition
+        name: bgppeers.metallb.io
+        jsonPointers:
+          - /spec/conversion/webhook/clientConfig/caBundle
+      - group: "apiextensions.k8s.io"
+        kind: CustomResourceDefinition
+        name: addresspools.metallb.io
+        jsonPointers:
+          - /spec/conversion/webhook/clientConfig/caBundle
+
+  metrics-server:
+    namespace: kube-system
+    valueFiles:
+      - values.yaml
+
+  traefik:
+    valueFiles:
+      - values.yaml
+      - values.dev.yaml
+
+  renovate:
+    valueFiles:
+      - values.yaml
+      - secrets://secrets.yaml

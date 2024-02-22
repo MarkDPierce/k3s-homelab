@@ -1,0 +1,35 @@
+renovate:
+  global:
+    commonLabels: &labels
+      env: dev
+
+  cronjob:
+    schedule: "36 6 * * 1-5" # before start of workday, don't bunch all cronjobs at xx:00\
+    ttlSecondsAfterFinished: 43200 # 12 hours
+    activeDeadlineSeconds: 7200 # 2 hours
+
+  renovate:
+    config: |-
+      {
+        "platform": "github",
+        "exposeAllEnv": true,
+        "hostRules": [
+        ],
+        "repositories": [
+          "MarkDPierce/privatelab"
+        ],
+        "detectHostRulesFromEnv": true
+      }
+    configEnableHelmTpl: true
+    configIsSecret: true
+
+  securityContext:
+    fsGroup: 1000
+    fsGroupChangePolicy: OnRootMismatch
+
+  env:
+    LOG_LEVEL: debug
+    RENOVATE_TOKEN: 
+
+global:
+  commonLabels: *labels

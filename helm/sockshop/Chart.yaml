@@ -1,7 +1,0 @@
-apiVersion: v2
-name: sockshop
-description: A custom parent Helm chart for sockshop
-dependencies:
-- name: helm-chart
-  version: &chartVersion 0.3.0
-version: *chartVersion

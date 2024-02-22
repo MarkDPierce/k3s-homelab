@@ -1,17 +1,15 @@
-FROM alpine:3.19.0 AS binaries
+#################################CREATE SOPS LAYER#############################
+FROM alpine:3.19.1 AS binaries
 ARG TARGETOS
 ARG TARGETARCH
 
-# renovate: datasource=github-releases depName=mozilla/sops versioning=loose
 ENV SOPS_VERSION=v3.8.1
 RUN wget https://github.com/getsops/sops/releases/download/${SOPS_VERSION}/sops-${SOPS_VERSION}.${TARGETOS}.${TARGETARCH} -O /tmp/sops && chmod +x /tmp/sops
-
-########################################################################################################################
-FROM quay.io/argoproj/argocd:v2.9.3@sha256:dfc13f4b9ddbf25a88f7018667ee45e35a49520e2716242e3f65ef75f88c25ff
-# renovate: datasource=github-tags depName=jkroepke/helm-secrets versioning=loose
+###########################Create ArgoCD Layer#################################
+FROM quay.io/argoproj/argocd:v2.10.1@sha256:5f1de1b4d959868c1e006e08d46361c8f019d9730e74bc1feeab8c7b413f1187
 ENV HELM_SECRETS_VERSION=v4.5.1
 
-# Install SOPS binary
+# Install SOPS binary from previous layer
 COPY --from=binaries /tmp/sops /usr/local/bin/sops
 
 # Helm plugins need to be installed by the correct user

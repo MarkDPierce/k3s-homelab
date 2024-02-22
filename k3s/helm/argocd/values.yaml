@@ -1,0 +1,128 @@
+age:
+  secretName: &ageSecretName helm-secrets-private-keys
+
+argo-cd:
+  global:
+    logLevel: error
+    addPrometheusAnnotations: false
+    securityContext:
+      runAsUser: 999
+      runAsGroup: 999
+      fsGroup: 999
+    revisionHistoryLimit: 3
+    image:
+      repository: ghcr.io/markdpierce/privatelab/argoproj/argocd
+      tag: v2.10.0
+  
+  notifications:
+    enabled: false
+
+  configs:
+    cm:
+      dex.config: |
+        connectors:
+          # GitHub example
+          - type: github
+            id: github
+            name: GitHub
+            config:
+              clientID: $dex.github.clientID
+              clientSecret: $dex.github.clientSecret
+      statusbadge.enabled: "true"
+      helm.valuesFileSchemes: "https, secrets"
+    credentialTemplates:
+      homelab:
+        url: git@github.com:MarkDPierce/privatelab.git
+        type: git
+    params:
+      server.insecure: true
+    secret:
+      argocdServerAdminPassword: $2a$10$2treTPqBeKE82S4YR6g0CuhmDlxtr9qflEXZMA1nwwNp/VGI8kyXG
+    repositories:
+      cert-manager:
+        name: cert-manager
+        url: https://charts.jetstack.io
+        type: helm
+      external-dns:
+        name: external-dns
+        url: https://kubernetes-sigs.github.io/external-dns
+        type: helm
+      traefik:
+        name: traefik
+        url: https://traefik.github.io/charts
+        type: helm
+      longhorn:
+        name: longhorn
+        url: https://charts.longhorn.io
+        type: helm
+      metallb:
+        name: metallb
+        url: https://metallb.github.io/metallb
+        type: helm
+      kube-prometheus-stack:
+        name: kube-prometheus-stack
+        url: https://prometheus-community.github.io/helm-charts
+        type: helm
+    rbac:
+      policy.default: role:readonly
+      policy.csv: |
+        g, mark.pierce.d@gmail.com, role:admin
+      scopes: '[email, groups]'
+
+  applicationSet:
+    enabled: false
+  
+  repoServer:
+    autoscaling:
+      enabled: false
+    metrics:
+      enabled: true
+    serviceAccount:
+      create: true
+      name: argocd
+    env:
+      - name: SOPS_AGE_KEY_FILE
+        value: /helm-secrets-private-keys/key.txt
+    volumes:
+      - name: *ageSecretName
+        secret:
+          secretName: *ageSecretName
+    volumeMounts:
+      - mountPath: /helm-secrets-private-keys/
+        name: *ageSecretName
+    rbac:
+      - apiGroups:
+          - argoproj.io
+        resources:
+          - applications
+        verbs:
+          - get
+          - list
+          - watch
+
+  server:
+    resources:
+      limits:
+        cpu: 200m
+        memory: 256Mi
+      requests:
+        cpu: 100m
+        memory: 128Mi
+
+  crds:
+    install: true
+
+argocd-apps:
+  projects:
+    - name: homelab
+      namespace: argocd
+      sourceRepos:
+       - "*"
+      destinations:
+       - namespace: "*"
+         server: https://kubernetes.default.svc
+      clusterResourceWhitelist:
+        - group: "*"
+          kind: "*"
+      orphanedResources:
+        warn: false

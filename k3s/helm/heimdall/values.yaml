@@ -1,0 +1,13 @@
+heimdall:
+  persistence:
+    config:
+      enabled: true
+  ingress:
+    main:
+      enabled: true
+
+  common:
+    persistence:
+      config:
+        enabled: true
+        storageClassName: longhorn

@@ -1,0 +1,7 @@
+apiVersion: v2
+name: metrics-server
+description: A custom parent Helm chart for metrics-server
+dependencies:
+- name: metrics-server
+  version: &chartVersion 3.12.0
+version: *chartVersion

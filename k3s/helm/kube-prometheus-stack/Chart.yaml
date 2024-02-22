@@ -1,0 +1,7 @@
+apiVersion: v2
+name: prometheus
+description: A custom parent Helm chart for prometheus
+dependencies:
+- name: kube-prometheus-stack
+  version: &chartVersion 56.7.0
+version: *chartVersion

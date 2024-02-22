@@ -1,0 +1,196 @@
+{{- if .Values.apiVersionOverrides.cronjob -}}
+apiVersion: {{ .Values.apiVersionOverrides.cronjob }}
+{{- else if .Capabilities.APIVersions.Has "batch/v1/CronJob" }}
+apiVersion: batch/v1
+{{- else if .Capabilities.APIVersions.Has "batch/v1beta1/CronJob" }}
+apiVersion: batch/v1beta1
+{{- else }}
+  {{- fail "\n\n ERROR: You must have at least batch/v1beta1 to use CronJob" }}
+{{- end }}
+kind: CronJob
+metadata:
+  name: {{ include "renovate.fullname" . }}
+  labels:
+    {{- include "renovate.labels" . | nindent 4 }}
+  {{- with .Values.cronjob.labels }}
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+{{- if .Values.cronjob.annotations }}
+  annotations:
+    {{ toYaml .Values.cronjob.annotations | nindent 4 }}
+{{- end }}
+spec:
+  schedule: "{{ .Values.cronjob.schedule }}"
+  {{- with .Values.cronjob.timeZone }}
+  timeZone: {{ . }}
+  {{- end }}
+  {{- with .Values.cronjob.suspend }}
+  suspend: {{ . }}
+  {{- end }}
+  {{- with .Values.cronjob.concurrencyPolicy }}
+  concurrencyPolicy: {{ . }}
+  {{- end }}
+  {{- with .Values.cronjob.failedJobsHistoryLimit }}
+  failedJobsHistoryLimit: {{ . }}
+  {{- end }}
+  {{- with .Values.cronjob.successfulJobsHistoryLimit }}
+  successfulJobsHistoryLimit: {{ . }}
+  {{- end }}
+  {{- with .Values.cronjob.startingDeadlineSeconds }}
+  startingDeadlineSeconds: {{ . }}
+  {{- end }}
+  jobTemplate:
+    metadata:
+      labels:
+        {{- include "renovate.selectorLabels" . | nindent 8 }}
+    spec:
+      {{- if .Values.cronjob.ttlSecondsAfterFinished }}
+      ttlSecondsAfterFinished: {{ .Values.cronjob.ttlSecondsAfterFinished }}
+      {{- end }}
+      {{- if .Values.cronjob.activeDeadlineSeconds }}
+      activeDeadlineSeconds: {{ .Values.cronjob.activeDeadlineSeconds }}
+      {{- end }}
+      {{- if .Values.cronjob.jobBackoffLimit }}
+      backoffLimit: {{ .Values.cronjob.jobBackoffLimit }}
+      {{- end }}
+      template:
+        metadata:
+          labels:
+            {{- include "renovate.selectorLabels" . | nindent 12 }}
+          {{- with .Values.pod.labels }}
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+        {{- if .Values.pod.annotations }}
+          annotations:
+            {{ toYaml .Values.pod.annotations | nindent 12 }}
+        {{- end }}
+        spec:
+          serviceAccountName: {{ include "renovate.serviceAccountName" . }}
+          restartPolicy: {{ .Values.cronjob.jobRestartPolicy }}
+        {{- with .Values.hostAliases }}
+          hostAliases:
+            {{- toYaml . | nindent 12 }}
+        {{- end }}
+          {{- if .Values.cronjob.initContainers }}
+          initContainers:
+            {{- toYaml .Values.cronjob.initContainers | nindent 12 }}
+          {{- end }}
+          containers:
+            - name: {{ .Chart.Name }}
+              image: "{{ .Values.image.registry }}/{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+              imagePullPolicy: {{ .Values.image.pullPolicy }}
+              {{- if or .Values.cronjob.preCommand .Values.cronjob.postCommand}}
+              command: ["/bin/bash", "-c"]
+              args:
+                - |
+                {{- if .Values.cronjob.preCommand }}
+                  {{- .Values.cronjob.preCommand | nindent 18 }}
+                {{- end }}
+                  renovate
+                {{- if .Values.cronjob.postCommand }}
+                  {{- .Values.cronjob.postCommand | nindent 18 }}
+                {{- end }}
+              {{- end }}
+              {{- if or .Values.renovate.config .Values.ssh_config.enabled .Values.renovate.persistence.cache.enabled .Values.extraVolumeMounts }}
+              volumeMounts:
+              {{- if .Values.renovate.config }}
+              - name: config-volume
+                mountPath: /usr/src/app/config.json
+                subPath: config.json
+              {{- end }}
+              {{- if .Values.ssh_config.enabled }}
+              - name: ssh-config-volume
+                mountPath: /home/ubuntu/.ssh
+                readOnly: true
+              {{- end }}
+              {{- if .Values.extraVolumeMounts }}
+                {{- toYaml .Values.extraVolumeMounts | nindent 14 }}
+              {{- end }}
+              {{- if .Values.renovate.persistence.cache.enabled }}
+              - name: {{ include "renovate.fullname" . }}-cache
+                mountPath: /tmp/renovate
+              {{- end }}
+              {{- end }}
+              env:
+                {{- if .Values.renovate.existingConfigFile }}
+                - name: RENOVATE_CONFIG_FILE
+                  value: {{ .Values.renovate.existingConfigFile }}
+                {{- else if .Values.renovate.config }}
+                - name: RENOVATE_CONFIG_FILE
+                  value: /usr/src/app/config.json
+                {{- end }}
+                {{- if .Values.redis.enabled }}
+                - name: RENOVATE_REDIS_URL
+                  value: redis://{{ include "renovate.redisHost" . }}
+                {{- end }}
+                {{- range $k, $v := .Values.env }}
+                - name: {{ $k | quote }}
+                  value: {{ $v | quote }}
+                {{- end }}
+                {{- with .Values.envList }}
+                  {{- toYaml . | nindent 16 }}
+                {{- end }}
+              envFrom:
+                {{- if or .Values.secrets .Values.existingSecret }}
+                - secretRef:
+                    name: {{ template "renovate.secretName" . }}
+                {{- end }}
+                {{- with .Values.envFrom }}
+                  {{- toYaml . | nindent 16 }}
+                {{- end }}
+            {{- with .Values.renovate.securityContext }}
+              securityContext:
+                {{- toYaml . | nindent 16 }}
+            {{- end }}
+            {{- with .Values.resources }}
+              resources:
+                {{- toYaml . | nindent 16 }}
+            {{- end }}
+          {{- with .Values.extraContainers }}
+            {{- tpl (toYaml .) $ | nindent 12 }}
+          {{- end }}
+          volumes:
+            {{- if .Values.renovate.config }}
+              {{- if .Values.renovate.configIsSecret }}
+            - name: config-volume
+              secret:
+                secretName: {{ include "renovate.fullname" . }}-config
+              {{- else }}
+            - name: config-volume
+              configMap:
+                name: {{ include "renovate.fullname" . }}-config
+              {{- end }}
+            {{- end }}
+            {{- if .Values.renovate.persistence.cache.enabled }}
+            - name: {{ include "renovate.fullname" . }}-cache
+              persistentVolumeClaim:
+                claimName: {{ include "renovate.fullname" . }}-cache
+            {{- end }}
+            {{- if .Values.ssh_config.enabled }}
+            - name: ssh-config-volume
+              secret:
+                secretName: {{ include "renovate.sshSecretName" .}}
+            {{- end }}
+            {{- if .Values.extraVolumes }}
+              {{- toYaml .Values.extraVolumes | nindent 12 }}
+            {{- end }}
+        {{- with .Values.nodeSelector }}
+          nodeSelector:
+            {{ toYaml . | nindent 12 }}
+        {{- end }}
+        {{- with .Values.affinity }}
+          affinity:
+            {{ toYaml . | nindent 12 }}
+        {{- end }}
+        {{- with .Values.tolerations }}
+          tolerations:
+            {{ toYaml . | nindent 12 }}
+        {{- end }}
+        {{- with .Values.securityContext }}
+          securityContext:
+            {{ toYaml . | nindent 12 }}
+        {{- end }}
+        {{- with .Values.imagePullSecrets }}
+          imagePullSecrets:
+            {{- toYaml . | nindent 12 }}
+        {{- end }}

@@ -1,0 +1,51 @@
+labels: &labels
+  env: prod
+
+argo-cd:
+  global:
+    additionalLabels: *labels
+
+  configs:
+    cm:
+      url: https://argocd.mpierce.net
+
+  server:
+    ingress:
+      enabled: true
+      https: false
+      ingressClassName: traefik
+      annotations:
+        traefik.ingress.kubernetes.io/router.entrypoints: websecure
+        traefik.ingress.kubernetes.io/router.tls: "true"
+        cert-manager.io/cluster-issuer: letsencrypt
+        cert-manager.io/common-name: &host argocd.mpierce.net
+      hostname: *host
+      tls:
+        - secretName: argocd-server-tls
+          hosts:
+            - *host
+    service:
+      annotations:
+        external-dns.alpha.kubernetes.io/hostname: argocd.mpierce.net.
+        external-dns.alpha.kubernetes.io/ttl: "10"
+      type: LoadBalancer
+
+argocd-apps:
+  applications:
+    - name: homelab
+      namespace: argocd
+      project: homelab
+      source:
+        repoURL: git@github.com:MarkDPierce/privatelab.git
+        targetRevision: master
+        path: k3s/helm/applications
+        helm:
+          valueFiles:
+            - values.prod.yaml
+      destination:
+        server: https://kubernetes.default.svc
+        namespace: argocd
+      syncPolicy:
+        automated:
+          prune: true
+          selfHeal: true

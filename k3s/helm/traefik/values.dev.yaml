@@ -1,0 +1,20 @@
+labels: &labels
+  env: dev
+
+traefik:
+  service:
+    spec:
+      # Set load balancer external IP
+      loadBalancerIP: 192.168.178.201
+
+  logs:
+    general:
+      level: debug
+
+  resources:
+    requests:
+      cpu: "50m"
+      memory: "150Mi"
+    limits:
+      cpu: "100m"
+      memory: "250Mi"

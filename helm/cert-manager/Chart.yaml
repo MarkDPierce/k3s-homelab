@@ -1,7 +1,0 @@
-apiVersion: v2
-name: cert-manager
-description: A custom parent Helm chart for cert-manager
-dependencies:
-- name: cert-manager
-  version: &chartVersion 1.13.2
-version: *chartVersion

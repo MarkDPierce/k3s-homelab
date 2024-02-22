@@ -1,0 +1,30 @@
+cert-manager:
+  installCRDs: true
+  namespace: cert-manager
+  clusterResourceNamespace: cert-manager
+
+  resources:
+    requests:
+      cpu: 10m
+      #memory: 512Mi
+    limits:
+      cpu: 2
+      #memory: 1536Mi
+
+  ingressShim:
+    defaultIssuerName: letsencrypt
+    defaultIssuerKind: ClusterIssuer
+    defaultACMEChallengeType: dns01
+    defaultACMEDNS01ChallengeProvider: cloudflare
+
+  webhook:
+    resources:
+      requests:
+        cpu: 10m
+        memory: 24Mi
+      limits:
+        cpu: 250m
+        memory: 64Mi
+
+  prometheus:
+    enabled: true

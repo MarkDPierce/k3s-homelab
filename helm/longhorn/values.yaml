@@ -1,6 +1,0 @@
-# Does not allow custom labels: Wanting a Rancher based app that is not total garbage. That would be nice.
-longhorn:
-  defaultSetting:
-    defaultDataPath: /storage
-    storageMinimalAvailablePercentage: 80
-
