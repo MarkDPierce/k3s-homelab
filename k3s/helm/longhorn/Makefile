@@ -2,7 +2,7 @@ REPO := longhorn
 REPONAME := $(REPO)
 CHARTVER := 1.6.0
 REPOURL := https://charts.longhorn.io
-VALUE := -f values.yaml
+VALUE := -f values.yaml -f secrets.yaml
 NAMESPACE := $(REPO)
 
 ifndef ENV

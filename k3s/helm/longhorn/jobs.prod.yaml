@@ -1,0 +1,16 @@
+apiVersion: longhorn.io/v1beta1
+kind: RecurringJob
+metadata:
+  name: heimdall
+  namespace: longhorn
+spec:
+  cron: "*/15 * * * *"
+  task: "backup"
+  groups:
+  - default
+  - group1
+  retain: 1
+  concurrency: 2
+  labels:
+    env: prod
+    app: heimdall
