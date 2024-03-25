@@ -1,6 +1,6 @@
 REPO := renovate
 REPONAME := $(REPO)
-CHARTVER := 37.198.0
+CHARTVER := 37.269.2
 REPOURL := https://docs.renovatebot.com/helm-charts
 VALUE := -f values.yaml
 NAMESPACE := $(REPO)

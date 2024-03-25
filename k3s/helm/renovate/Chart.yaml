@@ -3,5 +3,5 @@ name: renovate
 description: A custom parent Helm chart by DBK for Renovate
 dependencies:
 - name: renovate
-  version: &chartVersion 37.198.0
+  version: &chartVersion 37.269.2
 version: *chartVersion
