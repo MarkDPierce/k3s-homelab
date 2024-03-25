@@ -22,7 +22,7 @@ add_repo := helm repo add $(REPONAME) $(REPOURL)
 unpack := helm pull $(REPONAME)/$(REPO) --version $(CHARTVER) --untar=true --untardir=charts
 
 TEMPLATE := helm secrets template --include-crds --release-name --create-namespace $(NAMESPACE) $(VALUES) ./ -n $(NAMESPACE)
-APPLY := kubectl apply --context=$(CTX) --namespace $(NAMESPACE) --validate='strict' -f -
+APPLY := kubectl apply --context=$(CTX) --validate=strict -f -
 MAKE_NAMESPACE := kubectl create namespace $(NAMESPACE) --context=$(CTX)
 
 unpack:
