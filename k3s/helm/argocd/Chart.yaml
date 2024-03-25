@@ -3,8 +3,8 @@ name: argocd
 description: A custom parent Helm chart for argocd
 dependencies:
   - name: argo-cd
-    version: &chartVersion 6.2.0
+    version: &chartVersion 6.7.3
   - name: argocd-apps
-    version: 1.6.1
+    version: 1.6.2
     repository: https://argoproj.github.io/argo-helm
 version: *chartVersion
