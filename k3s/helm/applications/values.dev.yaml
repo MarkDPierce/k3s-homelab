@@ -23,12 +23,15 @@ apps:
     valueFiles:
       - values.yaml
       - values.dev.yaml
+      - secrets://secrets.yaml
+      - secrets://secrets.dev.yaml
 
   longhorn:
     valueFiles:
       - values.yaml
       - values.dev.yaml
-  
+      - secrets://secrets.yaml
+
   metallb:
     valueFiles:
       - values.yaml

@@ -8,7 +8,7 @@ apps:
       - values.yaml
       - values.prod.yaml
       - secrets://secrets.yaml
-  
+
   external-dns:
     valueFiles:
       - values.yaml
@@ -19,10 +19,18 @@ apps:
       - values.yaml
       - values.prod.yaml
 
+  kube-prometheus-stack:
+    valueFiles:
+      - values.yaml
+      - values.prod.yaml
+      - secrets://secrets.yaml
+
   longhorn:
     valueFiles:
       - values.yaml
       - values.prod.yaml
+      - secrets://secrets.yaml
+      - secrets://secrets.prod.yaml
 
   metallb:
     valueFiles:
