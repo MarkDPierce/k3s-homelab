@@ -32,7 +32,7 @@ services:
     dns:
       - ${DNS}
     command:
-      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--config.file=/etc/prometheus/prometheus.yaml'
       - '--storage.tsdb.path=/prometheus'
       - '--storage.tsdb.retention.time=90d'
       - '--web.console.libraries=/usr/share/prometheus/console_libraries'
@@ -45,13 +45,12 @@ services:
       - "traefik.http.routers.prometheus.rule=Host(`${FQDN_PROM}`)"
       - "traefik.http.routers.prometheus.service=prometheus"
       - "traefik.http.routers.prometheus.tls=true"
+      - "traefik.http.routers.prometheus.tls.certresolver=cloudflare"
       - "traefik.http.services.prometheus.loadbalancer.server.port=${PROMETHEUS_PORT}"
-      - "traefik.http.routers.prometheus_http.entrypoints=http"
-      - "traefik.http.routers.prometheus_http.rule=Host(`${FQDN_PROM}`)"
     deploy:
       resources:
         limits:
-          memory: 1g
+          memory: 1.5g
         reservations:
           memory: 750m
 
@@ -82,6 +81,7 @@ services:
       - "traefik.http.routers.alertmanager.rule=Host(`${FQDN_AM}`)"
       - "traefik.http.routers.alertmanager.service=alertmanager"
       - "traefik.http.routers.alertmanager.tls=true"
+      - "traefik.http.routers.alertmanager.tls.certresolver=cloudflare"
       - "traefik.http.services.alertmanager.loadbalancer.server.port=${AM_PORT}"
       - "traefik.http.routers.alertmanager_http.entrypoints=http"
       - "traefik.http.routers.alertmanager_http.rule=Host(`${FQDN_AM}`)"
@@ -89,7 +89,7 @@ services:
       mode: global
       resources:
         limits:
-          memory: 200m
+          memory: 70m
         reservations:
           memory: 50m
 
@@ -126,13 +126,14 @@ services:
       - "traefik.http.routers.grafana.rule=Host(`${FQDN_GRAFANA}`)"
       - "traefik.http.routers.grafana.service=grafana"
       - "traefik.http.routers.grafana.tls=true"
+      - "traefik.http.routers.grafana.tls.certresolver=cloudflare"
       - "traefik.http.services.grafana.loadbalancer.server.port=${GRAFANA_PORT}"
       - "traefik.http.routers.grafana_http.entrypoints=http"
       - "traefik.http.routers.grafana_http.rule=Host(`${FQDN_GRAFANA}`)"
     deploy:
       resources:
         limits:
-          memory: 500m
+          memory: 300m
         reservations:
           memory: 100m
 
@@ -156,8 +157,7 @@ services:
       - '--path.rootfs=/host'
       - '--path.procfs=/host/proc'
       - '--path.sysfs=/host/sys'
-      - --collector.filesystem.ignored-mount-points
-      - "^/(sys|proc|dev|host|etc|rootfs/var/lib/docker/containers|rootfs/var/lib/docker/overlay2|rootfs/run/docker/netns|rootfs/var/lib/docker/aufs)($$|/)"
+      - '--collector.filesystem.mount-points-exclude=^/(sys|proc|dev|host|etc|rootfs/var/lib/docker/containers|rootfs/var/lib/docker/overlay2|rootfs/run/docker/netns|rootfs/var/lib/docker/aufs)($$|/)'
     labels:
       - "env=prod"
       - "com.centurylinklabs.watchtower.enable=true"
@@ -166,6 +166,7 @@ services:
       - "traefik.http.routers.node_exporter.rule=Host(`${FQDN_NE}`)"
       - "traefik.http.routers.node_exporter.service=node_exporter"
       - "traefik.http.routers.node_exporter.tls=true"
+      - "traefik.http.routers.node_exporter.tls.certresolver=cloudflare"
       - "traefik.http.services.node_exporter.loadbalancer.server.port=${NODE_EXPORTER_PORT}"
       - "traefik.http.routers.node_exporter_http.entrypoints=http"
       - "traefik.http.routers.node_exporter_http.rule=Host(`${FQDN_NE}`)"
@@ -173,9 +174,9 @@ services:
       mode: global
       resources:
         limits:
-          memory: 128m
+          memory: 250m
         reservations:
-          memory: 64m
+          memory: 200m
 
   cadvisor:
     privileged: true
@@ -203,6 +204,7 @@ services:
       - "traefik.http.routers.cadvisor.rule=Host(`${FQDN_CA}`)"
       - "traefik.http.routers.cadvisor.service=cadvisor"
       - "traefik.http.routers.cadvisor.tls=true"
+      - "traefik.http.routers.cadvisor.tls.certresolver=cloudflare"
       - "traefik.http.services.cadvisor.loadbalancer.server.port=${CA_PORT}"
       - "traefik.http.routers.cadvisor_http.entrypoints=http"
       - "traefik.http.routers.cadvisor_http.rule=Host(`${FQDN_CA}`)"
@@ -210,9 +212,39 @@ services:
       mode: global
       resources:
         limits:
-          memory: 700m
+          memory: 800m
         reservations:
-          memory: 200m
+          memory: 400m
+
+  pushgateway:
+    image: prom/pushgateway:latest
+    container_name: pushgateway
+    hostname: pushgateway
+    restart: unless-stopped
+    profiles:
+      - prometheus
+    networks:
+      - docker-exposed
+    ports:
+      - ${PUSHGW_PORT}:${PUSHGW_PORT}
+    labels:
+      - "env=prod"
+      - "com.centurylinklabs.watchtower.enable=true"
+      - "traefik.enable=true"
+      - "traefik.http.routers.pushgateway.entrypoints=https"
+      - "traefik.http.routers.pushgateway.rule=Host(`${FQDN_PUSHGW}`)"
+      - "traefik.http.routers.pushgateway.service=pushgateway"
+      - "traefik.http.routers.pushgateway.tls=true"
+      - "traefik.http.services.pushgateway.loadbalancer.server.port=${PUSHGW_PORT}"
+      - "traefik.http.routers.pushgateway_http.entrypoints=http"
+      - "traefik.http.routers.pushgateway_http.rule=Host(`${FQDN_PUSHGW}`)"
+    deploy:
+      mode: global
+      resources:
+        limits:
+          memory: 800m
+        reservations:
+          memory: 400m
 
   dozzle:
     image: amir20/dozzle:latest
@@ -224,7 +256,7 @@ services:
     networks:
       - docker-exposed
     ports:
-      - 9999:${DOZZLE_PORT}
+      - ${DOZZLE_PORT}:8080
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
     labels:
@@ -235,6 +267,7 @@ services:
       - "traefik.http.routers.dozzle.rule=Host(`${FQDN_DOZZLE}`)"
       - "traefik.http.routers.dozzle.service=dozzle"
       - "traefik.http.routers.dozzle.tls=true"
+      - "traefik.http.routers.dozzle.tls.certresolver=cloudflare"
       - "traefik.http.services.dozzle.loadbalancer.server.port=${DOZZLE_PORT}"
       - "traefik.http.routers.dozzle_http.entrypoints=http"
       - "traefik.http.routers.dozzle_http.rule=Host(`${FQDN_DOZZLE}`)"
@@ -242,7 +275,7 @@ services:
       mode: global
       resources:
         limits:
-          memory: 80m
+          memory: 60m
         reservations:
           memory: 7m
 
@@ -269,23 +302,71 @@ services:
       - PROMETHEUS_QUERY_NORMALIZE_CALLS=true
       - PROMETHEUS_QUERY_NORMALIZE_DURATION=true
     ports:
-      - "${JAEGER_PORT}:${JAEGER_PORT}"
-      - "${OTEL_PORT}:${OTEL_PORT}"
+      - "${JAEGER_PORT}:${JAEGER_PORT}" # Query serve frontend
+      #- 5775:5775/udp # agent (depricated)
+      - 6831:6831/udp # agent
+      - 6832:6832/udp # agent
+      - 5778:5778 # agent
+      - 14268:14268 # Collector
+      - 14250:14250 # Collector
+      #- 9411:9411 # Collector optional
+    labels:
+      - "env=prod"
+      - "com.centurylinklabs.watchtower.enable=true"
+      - "traefik.enable=true"
+      - "traefik.http.routers.jaeger.entrypoints=https"
+      - "traefik.http.routers.jaeger.rule=Host(`${FQDN_JAEGER}`)"
+      - "traefik.http.routers.jaeger.service=jaeger"
+      - "traefik.http.routers.jaeger.tls=true"
+      - "traefik.http.routers.jaeger.tls.certresolver=cloudflare"
+      - "traefik.http.services.jaeger.loadbalancer.server.port=${JAEGER_PORT}"
+      - "traefik.http.routers.jaeger_http.entrypoints=http"
+      - "traefik.http.routers.jaeger_http.rule=Host(`${FQDN_JAEGER}`)"
 
-  otel_collector:
-    image: otel/opentelemetry-collector-contrib
-    container_name: otel-collector
-    hostname: otel-collector
-    restart: unless-stopped
-    dns:
-      - ${DNS}
+  scrutiny:
+    image: ghcr.io/analogj/scrutiny:master-omnibus
+    container_name: scrutiny
+    hostname: scrutiny
     profiles:
-      - prometheus
-    networks:
-      - docker-exposed
-      - docker-nonexposed
+      - synology
+    cap_add:
+      - SYS_RAWIO
+      - SYS_ADMIN
+    network_mode: hostbridge
+    ports:
+      - "6090:8080" # webapp
+      - "8086:8086" # influxDB admin
     volumes:
-      - ./srv/otel/otel-collector-config-connector.yml:/etc/otelcol/otel-collector-config.yml
-    command: --config /etc/otelcol/otel-collector-config.yml
-    depends_on:
-      - jaeger
+      - /run/udev:/run/udev:ro
+      - ./srv/scrutiny:/opt/scrutiny/config
+      - ./srv/scrutiny/influxdb:/opt/scrutiny/influxdb
+    devices:
+      - /dev/sata1:/dev/sata1
+      - /dev/sata2:/dev/sata2
+      - /dev/sata3:/dev/sata3
+      - /dev/sata4:/dev/sata4
+      - /dev/sata5:/dev/sata5
+      - /dev/sata6:/dev/sata6
+    environment:
+      - PGID=${PGID}
+      - PUID=${PUID}
+      - TZ=${TZ}
+      - SCRUTINY_WEB_INFLUXDB_TOKEN=${SCRUTINY_WEB_INFLUXDB_TOKEN}
+      - SCRUTINY_WEB_INFLUXDB_INIT_USERNAME=${SCRUTINY_WEB_INFLUXDB_INIT_USERNAME}
+      - SCRUTINY_WEB_INFLUXDB_INIT_PASSWORD=${SCRUTINY_WEB_INFLUXDB_INIT_PASSWORD}
+    labels:
+      - com.centurylinklabs.watchtower.enable=true
+      - "traefik.http.routers.scrutiny.entrypoints=https"
+      - "traefik.http.routers.scrutiny.rule=Host(`${SCRUTINY_FQDN}`)"
+      - "traefik.http.routers.scrutiny.service=scrutiny"
+      - "traefik.http.routers.scrutiny.tls=true"
+      - "traefik.http.routers.scrutiny.tls.certresolver=cloudflare"
+      - "traefik.http.services.scrutiny.loadbalancer.server.port=8080"
+      - "traefik.http.routers.scrutiny_http.entrypoints=http"
+      - "traefik.http.routers.scrutiny_http.rule=Host(`${SCRUTINY_FQDN}`)"
+    deploy:
+      resources:
+        limits:
+          memory: 400m
+        reservations:
+          memory: 200m

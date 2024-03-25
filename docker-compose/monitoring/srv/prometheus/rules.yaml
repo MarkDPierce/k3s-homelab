@@ -1,0 +1,32 @@
+groups:
+  - name: datetime
+    interval: 1m
+    rules:
+      - record: nl_dst
+        expr: |
+          (vector(0) and (month() < 3 or month() > 10))
+          or
+          (vector(1) and (month() > 3 and month() < 10))
+          or
+          (vector(1) and (month() == 3 and (day_of_month() - day_of_week()) >= 25) and absent((day_of_month() >= 25) and (day_of_week() == 0)))
+          or
+          (vector(1) and (month() == 10 and (day_of_month() - day_of_week()) < 25) and absent((day_of_month() >= 25) and (day_of_week() == 0)))
+          or
+          (vector(1) and ((month() == 10 and hour() < 1) or (month() == 3 and hour() > 0)) and ((day_of_month() >= 25) and (day_of_week() == 0)))
+          or
+          vector(0)
+      - record: nl_localtime_epoch
+        expr: |
+          time() + 3600 * (1 + nl_dst)
+      - record: nl_hour
+        expr: |
+          hour(nl_localtime_epoch)
+      - record: nl_business_day
+        expr: |
+          (vector(1) and day_of_week(nl_localtime_epoch) > 0 and day_of_week(nl_localtime_epoch) < 6) or vector(0)
+      - record: nl_business_hour
+        expr: |
+          (vector(1) and nl_hour >= 8 < 18 and nl_business_day == 1) or vector(0)
+      - record: nl_alert_hours
+        expr: |
+          (vector(1) and nl_hour >= 4 < 20) or vector(0)
