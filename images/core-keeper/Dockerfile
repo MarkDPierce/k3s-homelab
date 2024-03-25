@@ -1,7 +1,7 @@
 ###########################################################
 # Dockerfile that builds a Core Keeper Gameserver
 ###########################################################
-FROM cm2network/steamcmd:root@sha256:5e4b5b937dd9e6eb6dbd19a7ff1ef93c3c78bf1a649b187e7f8b097d098feaa1
+FROM cm2network/steamcmd:root@sha256:8f8680d917c7b33515ac6f5e095c7042b7f16815165f4d92b90721368387c9f2
 # https://hub.docker.com/r/cm2network/steamcmd/tags
 
 LABEL maintainer="leandro.martin@protonmail.com"
