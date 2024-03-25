@@ -1,5 +1,3 @@
-version: "3.9"
-
 networks:
   docker-exposed:
     external: true # means it is a fixed docker network created with "docker network create docker-exposed"
@@ -8,9 +6,14 @@ networks:
   docker-nonexposed:
     internal: true # means it gets created especially for this compose and is called <dirname>_docker-nonexposed
     driver: bridge
+  docker-vlan-backend:
+    external: true
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 255.255.0.0/16
 
 services:
-
   traefik:
     image: "traefik:latest"
     container_name: traefik
@@ -22,7 +25,7 @@ services:
       - no-new-privileges:true
     environment:
       - CF_API_EMAIL=${CF_API_EMAIL}
-      - CF_DNS_API_TOKEN=${CF_API_TOKEN}
+      - CF_API_KEY=${CF_API_TOKEN}
     ports:
       - "80:80"
       - "443:443"
@@ -46,10 +49,13 @@ services:
       - "env=prod"
       - "traefik.enable=true"
       - "com.centurylinklabs.watchtower.enable=true"
+      - "traefik.tls.stores.default.defaultgeneratedcert.resolver=cloudflare"
+      - "traefik.tls.stores.default.defaultgeneratedcert.domain.main=mpierce.net"
+      - "traefik.tls.stores.default.defaultgeneratedcert.domain.sans=dev.mpierce.net"
     deploy:
       resources:
         limits:
-          memory: 100m
+          memory: 200m
         reservations:
           memory: 50m
 
@@ -62,18 +68,18 @@ services:
     environment:
       CONTAINERS: 1
     networks:
-      - docker-nonexposed
+      docker-nonexposed: {}
+      # My docker hosts have an extra nic on a VLAN for host to host communication
+      # Dont expose this proxy unless you harden and encrypt it.
+      docker-vlan-backend: {}
     ports:
       - "2375:2375"
     labels:
-      - "apptype=infra"
-      - "environment=prod"
-      - "appfunction=proxy"
-      # Watchtower Update
+      - "env=prod"
       - "com.centurylinklabs.watchtower.enable=true"
     deploy:
       resources:
         limits:
-          memory: 10m
+          memory: 7m
         reservations:
           memory: 6m
