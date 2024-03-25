@@ -1,13 +1,15 @@
-#!/usr/bin/env bash
+#!/bin/bash
 
 if [ -f "/usr/local/bin/k3s-uninstall.sh" ]
 then
+cd /usr/local/bin/
 k3s-killall.sh
 k3s-uninstall.sh
 fi
 
 if [ -f "/usr/local/bin/k3s-agent-uninstall.sh" ]
 then
+cd /usr/local/bin/
 k3s-agent-uninstall.sh
 fi
 
