@@ -1,0 +1,17 @@
+labels: &labels
+  env: prod
+
+kube-prometheus-stack:
+  commonLabels: *labels
+
+  alertmanager:
+    enabled: false
+
+  grafana:
+    enabled: false
+
+  prometheusOperator:
+    enabled: false
+
+  prometheus:
+    enabled: false

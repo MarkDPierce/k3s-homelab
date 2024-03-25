@@ -1,6 +1,6 @@
 REPO := kube-prometheus-stack
 REPONAME := prometheus-community
-CHARTVER := 56.7.0
+CHARTVER := 57.1.0
 REPOURL := https://prometheus-community.github.io/helm-charts
 VALUE := -f values.yaml
 NAMESPACE := $(REPO)
