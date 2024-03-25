@@ -1,3 +1,18 @@
+jobs:
+  backup:
+    heimdall:
+      cron: "*/15 * * * *"
+      retain: 1
+      concurrency: 2
+      app: heimdall
+      env: dev
+    prometheus:
+      cron: "*/15 * * * *"
+      retain: 1
+      concurrency: 2
+      app: prometheus
+      env: dev
+
 longhorn:
   ingress:
     enabled: true

@@ -1,4 +1,20 @@
+jobs:
+  backup:
+    heimdall:
+      cron: "*/15 * * * *"
+      retain: 1
+      concurrency: 2
+      app: heimdall
+      env: prod
+
+
 longhorn:
+  defaultSettings:
+    defaultDataPath: /storage
+    replicaSoftAntiAffinity: true
+    logLevel: "Warn"
+    upgradeChecker: false
+    
   ingress:
     enabled: true
     ingressClassName: traefik

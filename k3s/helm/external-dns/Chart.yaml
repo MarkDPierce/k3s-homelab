@@ -3,6 +3,6 @@ name: external-dns
 description: A custom parent Helm chart for external-dns
 dependencies:
   - name: external-dns
-    version: &chartVersion 1.14.3
+    version: &chartVersion 1.14.4
     repository: https://kubernetes-sigs.github.io/external-dns
 version: *chartVersion

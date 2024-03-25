@@ -1,6 +1,10 @@
 version: '3.9'
 
 networks:
+  docker-exposed:
+    external: true
+    name: docker-exposed
+    driver: bridge
   docker-nonexposed:
     internal: true
     driver: bridge
@@ -12,17 +16,20 @@ services:
     hostname: watchtower
     restart: unless-stopped
     networks:
+      - docker-exposed
       - docker-nonexposed
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
+    dns:
+      - 192.168.178.104
     environment:
       - PGID=${PGID}
       - PUID=${PUID}
       - TZ=${TZ}
       - WATCHTOWER_CLEANUP=true
-      - WATCHTOWER_CLEANUP="true"
+      - WATCHTOWER_LOG_LEVEL=info
       - WATCHTOWER_INCLUDE_STOPPED=true
-      - WATCHTOWER_REVIVE_STOPPED=true
+      - WATCHTOWER_REVIVE_STOPPED=false
       - WATCHTOWER_SCHEDULE=0 0 1 * * *
       - WATCHTOWER_LABEL_ENABLE=true
       - WATCHTOWER_NOTIFICATIONS=gotify
@@ -34,6 +41,6 @@ services:
     deploy:
       resources:
         limits:
-          memory: 30m
+          memory: 15m
         reservations:
-          memory: 17m
+          memory: 6m

@@ -11,7 +11,7 @@ networks:
 
 services:
   freshrss-db:
-    image: postgres:16@sha256:86c1b844918b818384fdc374ef42b9fa072f1a6ae44c41af9a6a7a925a4a7a71
+    image: postgres:15
     container_name: freshrss-db
     hostname: freshrss-db
     restart: unless-stopped

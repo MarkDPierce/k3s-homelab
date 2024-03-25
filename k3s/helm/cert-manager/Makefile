@@ -1,6 +1,6 @@
 REPO := cert-manager
 REPONAME := jetstack
-CHARTVER := 1.14.2
+CHARTVER := 1.14.4
 REPOURL := https://charts.jetstack.io
 VALUE := -f values.yaml -f secrets.yaml
 NAMESPACE := $(REPO)

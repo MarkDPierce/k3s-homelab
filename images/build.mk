@@ -13,7 +13,7 @@ ifeq ($(PLATFORM),)
 	PLATFORM := linux/amd64,linux/arm64
 endif
 
-BUILDX      := docker buildx build -t $(REGISTRY)/$(IMAGE):$(VERSION) --platform $(PLATFORM) --cache-to=type=registry,ref=$(REGISTRY_CACHE)/$(IMAGE) --cache-from=type=registry,ref=$(REGISTRY_CACHE)/$(IMAGE) .
+BUILDX      := docker buildx build -t $(REGISTRY)/$(IMAGE):$(VERSION) --platform $(PLATFORM) --provenance=false --cache-to=type=registry,ref=$(REGISTRY_CACHE)/$(IMAGE) --cache-from=type=registry,ref=$(REGISTRY_CACHE)/$(IMAGE) .
 BUILDX_PUSH := $(BUILDX) --push
 
 .PHONY: build

@@ -1,0 +1,19 @@
+{{ range $key,$values := .Values.jobs.backup }}
+---
+apiVersion: longhorn.io/v1beta1
+kind: RecurringJob
+metadata:
+  name: {{ default $key $values.app }}
+  namespace: longhorn
+spec:
+  cron: {{ $values.cron | quote | default "0 0 1 * *"}}
+  task: "backup"
+  groups: 
+    - default
+    - group1
+  retain: {{ default $key $values.retain }}
+  concurrency: {{ default $key $values.concurrency }}
+  labels:
+    env: {{ default $key $values.env }}
+    app: {{ default $key $values.app }}
+{{ end }}

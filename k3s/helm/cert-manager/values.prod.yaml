@@ -3,8 +3,6 @@ cert-manager:
     commonLabels:
       env: prod
 
-  replicaCount: 4
-
   podDisruptionBudget:
     enabled: true
     minAvailable: 1

@@ -1,8 +1,10 @@
 labels: &labels
   env: prod
+
 hostname: &hostname heimdall.mpierce.net
 
 heimdall:
+  hostname: heimdall
 
   controller:
     replicas: 1
@@ -39,8 +41,7 @@ heimdall:
 
     resources:
       limits:
-        cpu: 300m
-        memory: 786Mi
+        memory: 900Mi
       requests:
-        cpu: 100m
-        memory: 265Mi
+        cpu: 500m
+        memory: 500Mi

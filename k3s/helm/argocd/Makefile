@@ -2,11 +2,11 @@
 
 ### ArgoCD
 REPO := argo-cd
-CHARTVER := 6.2.0
+CHARTVER := 6.7.3
 
 ### ArgoCD-Apps
 REPOAPPS := argocd-apps
-CHARTVERAPPS := 1.6.1
+CHARTVERAPPS := 1.6.2
 
 ### Repo Specific
 REPONAME := argo
@@ -30,9 +30,9 @@ add_helm_repo:
 	$(add_helm_repo)
 	$(update_repo)
 
-unpack := rm -rf charts/$(REPO) && helm pull $(REPONAME)/$(REPO) --version $(CHARTVER) --untar=true --untardir=charts
+unpack := helm pull $(REPONAME)/$(REPO) --version $(CHARTVER) --untar=true --untardir=charts
 
-unpackApps := rm -rf charts/$(REPOAPPS) && helm pull $(REPONAME)/$(REPOAPPS) --version $(CHARTVERAPPS) --untar=true --untardir=charts
+unpackApps := helm pull $(REPONAME)/$(REPOAPPS) --version $(CHARTVERAPPS) --untar=true --untardir=charts
 
 .PHONY: unpack unpack_argo unpack_apps
 

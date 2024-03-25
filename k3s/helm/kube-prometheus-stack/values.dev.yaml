@@ -9,42 +9,129 @@ kube-prometheus-stack:
   commonLabels: *labels
 
   alertmanager:
+    enabled: true
+    config:
+      global:
+        resolve_timeout: 5m
+      inhibit_rules:
+        - source_matchers:
+            - 'severity = critical'
+          target_matchers:
+            - 'severity =~ warning|info'
+          equal:
+            - 'namespace'
+            - 'alertname'
+        - source_matchers:
+            - 'severity = warning'
+          target_matchers:
+            - 'severity = info'
+          equal:
+            - 'namespace'
+            - 'alertname'
+        - source_matchers:
+            - 'alertname = InfoInhibitor'
+          target_matchers:
+            - 'severity = info'
+          equal:
+            - 'namespace'
+        - target_matchers:
+            - 'alertname = InfoInhibitor'
+      receivers:
+        - name: 'null'
+        - name: discord_criticals
+          discord_configs:
+          - send_resolved: true
+            http_config:
+              follow_redirects: true
+              enable_http2: true
+            webhook_url: <secret>
+            title: '{{ template "discord.default.title" . }}'
+            message: '{{ template "discord.default.message" . }}'
+        - name: discord_alerts
+          discord_configs:
+          - send_resolved: true
+            http_config:
+              follow_redirects: true
+              enable_http2: true
+            webhook_url: <secret>
+            title: '{{ template "discord.default.title" . }}'
+            message: '{{ template "discord.default.message" . }}'
+      route:
+        group_by: ['alertname', 'job', 'category', 'namespace']
+        group_wait: 30s
+        group_interval: 5m
+        repeat_interval: 12h
+        receiver: 'null'
+        routes:
+        - receiver: 'null'
+          matchers:
+            - alertname = "Watchdog"
+      templates:
+       - '/etc/alertmanager/config/*.tmpl'
     ingress:
       enabled: true
       ingressClassName: traefik
-      serviceName: prom-stack-alertmanager
       annotations:
         traefik.ingress.kubernetes.io/router.entrypoints: websecure
         traefik.ingress.kubernetes.io/router.tls: "true"
         cert-manager.io/cluster-issuer: letsencrypt
       hosts:
-        - alertmanager.dev.mpierce.net
+        - *fqdnam
       paths:
         - /
       pathType: ImplementationSpecific
       tls:
         - secretName: alertmanager-service-secret
           hosts:
-            - alertmanager.dev.mpierce.net
-
+            - *fqdnam
     service:
       type: LoadBalancer
       annotations:
         external-dns.alpha.kubernetes.io/hostname: alertmanager.dev.mpierce.net.
         external-dns.alpha.kubernetes.io/ttl: "10"
-
     alertmanagerSpec:
-      storage:
-        volumeClaimTemplate:
-          spec:
-            storageClassName: longhorn
-            resources:
-              requests:
-                storage: 1Gi
-      externalUrl: http://alertmanager.dev.mpierce.net
+      resources:
+        requests:
+          memory: 400Mi
+      externalUrl: https://alertmanager.dev.mpierce.net
 
   grafana:
-    adminPassword: grafana
+    enableKubeBackwardCompatibility: true
+    grafana.ini:
+      server:
+        domain: *fqdngr
+      auth:
+        disable_login_form: false
+      auth.github:
+        enabled: true
+        allow_sign_up: true
+        scopes: 'user:email'
+        auth_url: https://github.com/login/oauth/authorize
+        token_url: https://github.com/login/oauth/access_token
+        api_url: https://api.github.com/user
+        client_id: $__env{GH_CLIENT_ID}
+        client_secret: $__env{GH_CLIENT_SECRET}
+      auth.basic:
+        enabled: false
+    defaultDashboardsEditable: false
+    sidecar:
+      dashboards:
+        enabled: true
+    datasources:
+      exemplarTraceIdDestinations:
+        datasourceUid: Jaeger
+        traceIdLabelName: grafana
+    additionalDataSources:
+      - name: prometheus-docker
+        access: proxy
+        editable: false
+        jsonData:
+            tlsSkipVerify: false
+        type: prometheus
+        url: https://prometheus.test.mpierce.net/
+        version: 1
+    plugins:
+      - grafana-piechart-panel
     ingress:
       enabled: true
       annotations:
@@ -57,7 +144,6 @@ kube-prometheus-stack:
         - secretName: grafana-secret-tls
           hosts:
             - *fqdngr
-
     service:
       type: LoadBalancer
       appProtocol: http
@@ -66,8 +152,13 @@ kube-prometheus-stack:
         external-dns.alpha.kubernetes.io/ttl: "10"
 
   prometheus:
+    enabled: true
     prometheusSpec:
       externalUrl: http://prometheus.dev.mpierce.net
+      enableRemoteWriteReceiver: true
+      resources:
+        requests:
+          memory: 400Mi
       retention: 3h
       storageSpec:
         volumeClaimTemplate:
@@ -76,7 +167,20 @@ kube-prometheus-stack:
             resources:
               requests:
                 storage: 5Gi
-
+    additionalServiceMonitors:
+      - name: traefik
+        jobLabel: "traefik"
+        selector:
+          matchLabels:
+            component: metrics
+            instance: traefik-traefik
+            name: traefik
+        namespaceSelector:
+          matchNames:
+            - traefik
+        endpoints:
+          - port: metrics
+            path: /metrics
     ingress:
       enabled: true
       ingressClassName: traefik
@@ -94,7 +198,6 @@ kube-prometheus-stack:
         - secretName: prometheus-service-secret
           hosts:
             - *fqdnprom
-
     service:
       type: LoadBalancer
       annotations:
@@ -102,6 +205,10 @@ kube-prometheus-stack:
         external-dns.alpha.kubernetes.io/ttl: "10"
 
   prometheusOperator:
+    enabled: true
+    dnsConfig:
+      nameservers:
+        - 192.168.178.104
     admissionWebhooks:
       enabled: false
     service:

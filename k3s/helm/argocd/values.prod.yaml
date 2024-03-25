@@ -4,23 +4,24 @@ labels: &labels
 argo-cd:
   global:
     additionalLabels: *labels
-
-  configs:
-    cm:
-      url: https://argocd.mpierce.net
+    domain: &host argocd.mpierce.net
+    image:
+      repository: ghcr.io/markdpierce/privatelab/argocd
+      tag: v2.10.4
 
   server:
     ingress:
       enabled: true
-      https: false
+      https: true
       ingressClassName: traefik
       annotations:
         traefik.ingress.kubernetes.io/router.entrypoints: websecure
         traefik.ingress.kubernetes.io/router.tls: "true"
         cert-manager.io/cluster-issuer: letsencrypt
-        cert-manager.io/common-name: &host argocd.mpierce.net
+        cert-manager.io/common-name: *host
       hostname: *host
-      tls:
+      extraTls:
+      extraTls:
         - secretName: argocd-server-tls
           hosts:
             - *host
@@ -29,6 +30,8 @@ argo-cd:
         external-dns.alpha.kubernetes.io/hostname: argocd.mpierce.net.
         external-dns.alpha.kubernetes.io/ttl: "10"
       type: LoadBalancer
+
+
 
 argocd-apps:
   applications:

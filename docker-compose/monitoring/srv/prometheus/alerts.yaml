@@ -1,0 +1,393 @@
+groups:
+  - name: containers
+    rules:
+      # This rule can be very noisy in dynamic infra with legitimate container start/stop/deployment.
+      # NOTE: Set to info due to Watchtowers use and this being a test environment
+      - alert: ContainerAbsent
+        expr: sum by (name, instance) (absent(container_last_seen))
+        for: 5m
+        labels:
+          severity: info
+          type: alert
+          category: docker
+        annotations:
+          summary: Container absent (instance {{ $labels.instance }})
+          description: "A container is absent for 5 min\n  VALUE = {{ $value }}\n  LABELS = {{ $labels }}"
+
+        # This rule can be very noisy in dynamic infra with legitimate container start/stop/deployment.
+        # NOTE: Set to info due to Watchtowers use and this being a test environment
+      - alert: ContainerKilled
+        expr: avg by (name, instance) (time() - container_last_seen) > 60
+        for: 0m
+        labels:
+          severity: info
+          type: alert
+          category: docker
+        annotations:
+          summary: Container ( {{ $labels.name }}) killed (instance {{ $labels.name }})
+          description: "A container has disappeared\n  VALUE = {{ $value }}\n  LABELS = {{ $labels }}"
+
+      - alert: ContainerCpuUsage
+        expr: (sum(rate(container_cpu_usage_seconds_total{name!=""}[3m])) BY (instance, name) * 100) > 80
+        for: 2m
+        labels:
+          severity: warning
+          type: alert
+          category: docker
+        annotations:
+          summary: Container CPU usage (instance {{ $labels.name }})
+          description: "Container CPU usage is above 80%\n  VALUE = {{ $value }}\n  LABELS = {{ $labels }}"
+
+      # See https://medium.com/faun/how-much-is-too-much-the-linux-oomkiller-and-used-memory-d32186f29c9d
+      - alert: ContainerMemoryUsage
+        expr: round((sum by (instance, name) (container_memory_working_set_bytes{name!=""}) / sum by (instance, name) (container_spec_memory_limit_bytes > 0) * 100), 0.01) > 80
+        for: 5m
+        labels:
+          severity: warning
+          type: alert
+          category: memory
+        annotations:
+          summary: Container Memory usage (instance {{ $labels.name }})
+          description: "Container Memory usage is above 80%\n  VALUE = {{ $value }}\n  LABELS = {{ $labels }}"
+
+      - alert: ContainerVolumeUsage
+        expr: (1 - (sum by (instance) (container_fs_inodes_free{name!="", instance!~".*docker0.*"}) / sum by (instance) (container_fs_inodes_total{instance!~".*docker0.*"}))) * 100 > 80
+        for: 2m
+        labels:
+          severity: warning
+          type: alert
+          category: storage
+        annotations:
+          summary: Container Volume usage (instance {{ $labels.name }})
+          description: "Container Volume usage is above 80%\n  VALUE = {{ $value }}\n  LABELS = {{ $labels }}"
+
+      - alert: ContainerHighThrottleRate
+        expr: rate(container_cpu_cfs_throttled_seconds_total[3m]) > 1
+        for: 2m
+        labels:
+          severity: warning
+          type: alert
+          category: cpu
+        annotations:
+          summary: Container high throttle rate (instance {{ $labels.name }})
+          description: "Container is being throttled\n  VALUE = {{ $value }}\n  LABELS = {{ $labels }}"
+
+  - name: hosts
+    rules:
+      - alert: HostOutOfMemory
+        expr: (sum(node_memory_MemTotal_bytes) - sum(node_memory_MemFree_bytes + node_memory_Buffers_bytes + node_memory_Cached_bytes) ) / sum(node_memory_MemTotal_bytes) * 100 > 85
+        for: 2m
+        labels:
+          severity: warning
+          type: alert
+          category: memory
+        annotations:
+          summary: "Server memory is almost full"
+          description: "Docker host memory usage is {{ humanize $value}}%. Reported by instance {{ $labels.instance }} of job {{ $labels.job }}."
+
+      - alert: HostMemoryUnderMemoryPressure
+        expr: rate(node_vmstat_pgmajfault[1m]) > 1000
+        for: 2m
+        labels:
+          severity: warning
+          type: alert
+          category: memory
+        annotations:
+          summary: Host memory under memory pressure (instance {{ $labels.instance }})
+          description: "The node is under heavy memory pressure. High rate of major warning faults\n  VALUE = {{ $value }}\n  LABELS = {{ $labels }}"
+
+      # You may want to increase the alert manager 'repeat_interval' for this type of alert to daily or weekly
+      - alert: HostMemoryIsUnderUtilized
+        expr: 100 - (rate(node_memory_MemAvailable_bytes[30m]) / node_memory_MemTotal_bytes * 100) < 20
+        for: 1w
+        labels:
+          severity: info
+          category: metrics
+          type: host
+        annotations:
+          summary: Host Memory is under utilized (instance {{ $labels.instance }})
+          description: "Node memory is < 20% for 1 week. Consider reducing memory space.\n  VALUE = {{ $value }}\n  LABELS = {{ $labels }}"
+
+      - alert: HostUnusualNetworkThroughputIn
+        expr: sum by (instance, device) (rate(node_network_receive_bytes_total[2m])) / 1024 / 1024 > 100
+        for: 5m
+        labels:
+          severity: warning
+          type: alert
+          category: network
+        annotations:
+          summary: Host unusual network throughput in (instance {{ $labels.instance }})
+          description: "Host network interfaces are probably receiving too much data (> 100 MB/s)\n  VALUE = {{ $value }}\n  LABELS = {{ $labels }}"
+
+      - alert: HostUnusualNetworkThroughputOut
+        expr: sum by (instance, device) (rate(node_network_transmit_bytes_total[2m])) / 1024 / 1024 > 100
+        for: 5m
+        labels:
+          severity: warning
+          type: alert
+          category: network
+        annotations:
+          summary: Host unusual network throughput out (instance {{ $labels.instance }})
+          description: "Host network interfaces are probably sending too much data (> 100 MB/s)\n  VALUE = {{ $value }}\n  LABELS = {{ $labels }}"
+
+      - alert: HostUnusualDiskReadRate
+        expr: sum by (instance, device) (rate(node_disk_read_bytes_total[2m])) / 1024 / 1024 > 50
+        for: 5m
+        labels:
+          severity: warning
+          type: alert
+          category: storage
+        annotations:
+          summary: Host unusual disk read rate (instance {{ $labels.instance }})
+          description: "Disk is probably reading too much data (> 50 MB/s)\n  VALUE = {{ $value }}\n  LABELS = {{ $labels }}"
+
+      - alert: HostUnusualDiskWriteRate
+        expr: sum by (instance, device) (rate(node_disk_written_bytes_total[2m])) / 1024 / 1024 > 50
+        for: 2m
+        labels:
+          severity: warning
+          type: alert
+          category: storage
+        annotations:
+          summary: Host unusual disk write rate (instance {{ $labels.instance }})
+          description: "Disk is probably writing too much data (> 50 MB/s)\n  VALUE = {{ $value }}\n  LABELS = {{ $labels }}"
+
+      # Please add ignored mountpoints in node_exporter parameters like
+      # "--collector.filesystem.ignored-mount-points=^/(sys|proc|dev|run)($|/)".
+      # Same rule using "node_filesystem_free_bytes" will fire when disk fills for non-root users.
+      - alert: HostOutOfDiskSpace
+        expr: (node_filesystem_size_bytes{fstype="ext4"} - node_filesystem_free_bytes{fstype="ext4"}) / node_filesystem_size_bytes{fstype="ext4"} * 100
+        for: 2m
+        labels:
+          severity: critical
+          type: alert
+          category: storage
+        annotations:
+          summary: Host out of disk space (instance {{ $labels.instance }})
+          description: "Disk is almost full (< 10% left)\n  VALUE = {{ $value }}\n  LABELS = {{ $labels }}"
+
+      # Please add ignored mountpoints in node_exporter parameters like
+      # "--collector.filesystem.ignored-mount-points=^/(sys|proc|dev|run)($|/)".
+      # Same rule using "node_filesystem_free_bytes" will fire when disk fills for non-root users.
+      - alert: HostDiskWillFillIn24Hours
+        expr: (node_filesystem_avail_bytes * 100) / node_filesystem_size_bytes < 10 and ON (instance, device, mountpoint) predict_linear(node_filesystem_avail_bytes{fstype!~"tmpfs"}[1h], 24 * 3600) < 0 and ON (instance, device, mountpoint) node_filesystem_readonly == 0
+        for: 2m
+        labels:
+          severity: critical
+          type: alert
+          category: storage
+        annotations:
+          summary: Host disk will fill in 24 hours (instance {{ $labels.instance }})
+          description: "Filesystem is predicted to run out of space within the next 24 hours at current write rate\n  VALUE = {{ $value }}\n  LABELS = {{ $labels }}"
+
+      - alert: HostUnusualDiskReadLatency
+        expr: round(rate(node_disk_read_time_seconds_total[1m]) / rate(node_disk_reads_completed_total[1m]) > 0.1 and rate(node_disk_reads_completed_total[1m]), .001)  > 1
+        for: 10m
+        labels:
+          severity: warning
+          type: alert
+          category: storage
+        annotations:
+          summary: Host unusual disk read latency (instance {{ $labels.instance }})
+          description: "Disk latency is growing (read operations > 100ms)\n  VALUE = {{ $value }}\n  LABELS = {{ $labels }}"
+
+      - alert: HostUnusualDiskWriteLatency
+        expr: rate(node_disk_write_time_seconds_total{device!~"dm.*|md.*"}[1m]) / rate(node_disk_writes_completed_total{device!~"dm.*|md.*"}[1m]) > 0.3 and rate(node_disk_writes_completed_total{device!~"dm.*|md.*"}[1m]) > 0
+        for: 10m
+        labels:
+          severity: warning
+          type: alert
+          category: storage
+        annotations:
+          summary: Host unusual disk write latency (instance {{ $labels.instance }})
+          description: "Disk latency is growing (write operations > 100ms)\n  VALUE = {{ $value }}\n  LABELS = {{ $labels }}"
+
+      - alert: HostHighCpuLoad
+        expr: sum by (instance) (avg by (mode, instance) (rate(node_cpu_seconds_total{mode!="idle"}[2m]))) > 0.8
+        for: 4m
+        labels:
+          severity: warning
+          type: alert
+          category: cpu
+        annotations:
+          summary: Host high CPU load (instance {{ $labels.instance }})
+          description: "CPU load is > 80%\n  VALUE = {{ $value }}\n  LABELS = {{ $labels }}"
+
+      # You may want to increase the alert manager 'repeat_interval' for this type of alert to daily or weekly
+      - alert: HostCpuIsUnderUtilized
+        expr: 100 - (rate(node_cpu_seconds_total{mode="idle"}[30m]) * 100) < 7
+        for: 1w
+        labels:
+          severity: info
+          category: metrics
+        annotations:
+          summary: Host CPU is under utilized (instance {{ $labels.instance }})
+          description: "CPU load is < 20% for 1 week. Consider reducing the number of CPUs.\n  VALUE = {{ $value }}\n  LABELS = {{ $labels }}"
+
+      - alert: HostCpuStealNoisyNeighbor
+        expr: avg by(instance) (rate(node_cpu_seconds_total{mode="steal"}[5m])) * 100 > 10
+        for: 0m
+        labels:
+          severity: warning
+          type: alert
+          category: metrics
+        annotations:
+          summary: Host CPU steal noisy neighbor (instance {{ $labels.instance }})
+          description: "CPU steal is > 10%. A noisy neighbor is killing VM performances or a spot instance may be out of credit.\n  VALUE = {{ $value }}\n  LABELS = {{ $labels }}"
+
+      - alert: HostCpuHighIowait
+        expr: round(avg by (instance) (rate(node_cpu_seconds_total{mode="iowait"}[5m])) * 100, 0.01) > 20
+        for: 15m
+        labels:
+          severity: warning
+          type: alert
+          category: cpu
+        annotations:
+          summary: Host CPU high iowait (instance {{ $labels.instance }})
+          description: "CPU iowait > 20%. A high iowait means that you are disk or network bound.\n  VALUE = {{ $value }}\n  LABELS = {{ $labels }}"
+
+      - alert: HostSwapIsFillingUp
+        expr: (1 - (node_memory_SwapFree_bytes{instance!~".*node01.*"} / node_memory_SwapTotal_bytes{instance!~".*node01.*"})) * 100 > 80
+        for: 2m
+        labels:
+          severity: warning
+          type: alert
+          category: storage
+        annotations:
+          summary: Host swap is filling up (instance {{ $labels.instance }})
+          description: "Swap is filling up (>80%)\n  VALUE = {{ $value }}\n  LABELS = {{ $labels }}"
+
+      - alert: HostSystemdServiceCrashed
+        expr: node_systemd_unit_state{state="failed"} == 1
+        for: 0m
+        labels:
+          severity: critical
+          type: alert
+          category: host
+        annotations:
+          summary: Host systemd service crashed (instance {{ $labels.instance }})
+          description: "systemd service crashed\n  VALUE = {{ $value }}\n  LABELS = {{ $labels }}"
+
+      - alert: HostPhysicalComponentTooHot
+        expr: node_hwmon_temp_celsius > 75
+        for: 5m
+        labels:
+          severity: critical
+          type: alert
+          category: host
+        annotations:
+          summary: Host physical component too hot (instance {{ $labels.instance }})
+          description: "Physical hardware component too hot\n  VALUE = {{ $value }}\n  LABELS = {{ $labels }}"
+
+      - alert: HostOomKillDetected
+        expr: increase(node_vmstat_oom_kill[1m]) > 0
+        for: 0m
+        labels:
+          severity: warning
+          type: alert
+          category: host
+        annotations:
+          summary: Host OOM kill detected (instance {{ $labels.instance }})
+          description: "OOM kill detected\n  VALUE = {{ $value }}\n  LABELS = {{ $labels }}"
+
+      - alert: HostRequiresReboot
+        expr: node_reboot_required > 0
+        for: 4h
+        labels:
+          severity: info
+          type: alert
+          category: host
+        annotations:
+          summary: Host requires reboot (instance {{ $labels.instance }})
+          description: "{{ $labels.instance }} requires a reboot.\n  VALUE = {{ $value }}\n  LABELS = {{ $labels }}"
+
+  - name: traefik
+    rules:
+          # This rule can be very noisy in dynamic infra with legitimate container start/stop/deployment.
+      - alert: TraefikHighHttp4xxErrorRateService
+        expr: sum(rate(traefik_service_requests_total{code=~"4.*"}[5m])) by (service) / sum(rate(traefik_service_requests_total[5m])) by (service) * 100 > 5
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: Traefik high HTTP 4xx error rate service (instance {{ $labels.instance }})
+          description: "Traefik service 4xx error rate is above 5%\n  VALUE = {{ $value }}\n  LABELS = {{ $labels }}"
+
+        # This rule can be very noisy in dynamic infra with legitimate container start/stop/deployment.
+      - alert: TraefikHighHttp5xxErrorRateService
+        expr: sum(rate(traefik_service_requests_total{code=~"5.*"}[5m])) by (service) / sum(rate(traefik_service_requests_total[5m])) by (service) * 100 > 5
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: Traefik high HTTP 5xx error rate service (instance {{ $labels.instance }})
+          description: "Traefik service 5xx error rate is above 5%\n  VALUE = {{ $value }}\n  LABELS = {{ $labels }}"
+
+  - name: heartbeat
+    rules:
+      - alert: Watchdog
+        annotations:
+          summary: Watchdog is not firing in {{ .Values.alerts.env }}
+          description: OpsGenie should monitor for the lack of this alert
+        expr: |
+          vector(1)
+        labels:
+          app: prometheus
+          severity: critical
+
+      - alert: PrometheusJobMissing
+        expr: absent(up{job="prometheus"})
+        for: 0m
+        labels:
+          severity: critical
+          type: alert
+          category: required
+        annotations:
+          summary: Prometheus job missing (instance {{ $labels.instance }})
+          description: "A Prometheus job has disappeared\n  VALUE = {{ $value }}\n  LABELS = {{ $labels }}"
+
+      - alert: PrometheusAlertmanagerConfigurationReloadFailure
+        expr: alertmanager_config_last_reload_successful != 1
+        for: 0m
+        labels:
+          severity: warning
+          type: alert
+          category: required
+        annotations:
+          summary: Prometheus AlertManager configuration reload failure (instance {{ $labels.instance }})
+          description: "AlertManager configuration reload error\n  VALUE = {{ $value }}\n  LABELS = {{ $labels }}"
+
+      # Alert for any instance that is unreachable for >2 minutes.
+      - alert: service_down
+        expr: up == 0
+        for: 2m
+        labels:
+          severity: critical
+          type: alert
+          category: monitoring
+          name: "{{ $labels.job }}"
+        annotations:
+          summary: "Instance {{ $labels.instance }} down"
+          description: "{{ $labels.instance }} of job {{ $labels.job }} has been down for more than 2 minutes."
+
+      - alert: high_load
+        expr: node_load15 / count by (group, instance, job) (node_cpu_seconds_total{mode="idle"}) > 0.8
+        for: 15m
+        labels:
+          severity: warning
+          type: alert
+          category: cpu
+        annotations:
+          summary: "Instance {{ $labels.instance }} under high load"
+          description: "{{ $labels.instance }} of job {{ $labels.job }} is under high load."
+
+      - alert: over_load
+        expr: node_load5 / count by (group, instance, job) (node_cpu_seconds_total{mode="idle"}) > 5
+        for: 5m
+        labels:
+          severity: critical
+          type: alert
+          category: cpu
+        annotations:
+          summary: "Instance {{ $labels.instance }} under critical load"
+          description: "{{ $labels.instance }} of job {{ $labels.job }} is under high load."

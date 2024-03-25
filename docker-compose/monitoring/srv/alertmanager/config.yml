@@ -1,14 +1,26 @@
 receivers:
-  - name: 'default'
-    webhook_configs:
-      - url: http://alertmanager-discord-alerts-noise:9094
-  - name: 'discord_alerts'
-    webhook_configs:
-      - url: http://alertmanager-discord-alerts:9094
+  - name: default
+    discord_configs:
+    - send_resolved: true
+      http_config:
+        follow_redirects: true
+        enable_http2: true
+      webhook_url: <secret>
+      title: '{{ template "discord.default.title" . }}'
+      message: '{{ template "discord.default.message" . }}'
+  - name: discord_alerts
+    discord_configs:
+    - send_resolved: true
+      http_config:
+        follow_redirects: true
+        enable_http2: true
+      webhook_url: <secret>
+      title: '{{ template "discord.default.title" . }}'
+      message: '{{ template "discord.default.message" . }}'
 
 route:
-  receiver: default
   group_by: ['alertname', 'job', category]
+  receiver: default
   group_wait: 10s
   group_interval: 5m
   repeat_interval: 8h

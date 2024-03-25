@@ -1,3 +1,2 @@
 metrics-server:
-  metrics:
-   enabled: true
+  replicas: 2

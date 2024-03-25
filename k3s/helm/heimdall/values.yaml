@@ -2,12 +2,9 @@ heimdall:
   persistence:
     config:
       enabled: true
+      storageClass: longhorn
+
   ingress:
     main:
       enabled: true
-
-  common:
-    persistence:
-      config:
-        enabled: true
-        storageClassName: longhorn
+        

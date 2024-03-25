@@ -1,16 +1,29 @@
 # Does not allow custom labels: Wanting a Rancher based app that is not total garbage. That would be nice.
 longhorn:
-  defaultSetting:
+  defaultSettings:
     defaultDataPath: /storage
-    storageMinimalAvailablePercentage: 80
     replicaSoftAntiAffinity: true
+    logLevel: "Warn"
+    upgradeChecker: false
+    backupTargetCredentialSecret: cifs-secret
 
   persistence:
-    defaultClassReplicaCount: 1
+    migratable: true
+    defaultClassReplicaCount: 2
 
   services:
     ui:
       type: LoadBalancer
     manager:
       type: LoadBalancer
+  
+  longhornManager:
+    log:
+     format: json
 
+  preUpgradeChecker:
+    jobEnabled: false
+
+  metrics:
+   serviceMonitor:
+    enabled: false

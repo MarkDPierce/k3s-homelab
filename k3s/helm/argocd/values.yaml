@@ -3,25 +3,24 @@ age:
 
 argo-cd:
   global:
-    logLevel: error
-    addPrometheusAnnotations: false
+    logging:
+      level: warn
     securityContext:
       runAsUser: 999
       runAsGroup: 999
       fsGroup: 999
     revisionHistoryLimit: 3
-    image:
-      repository: ghcr.io/markdpierce/privatelab/argoproj/argocd
-      tag: v2.10.0
-  
+    networkPolicy:
+      create: false
+
   notifications:
     enabled: false
 
   configs:
     cm:
+      admin.enabled: true
       dex.config: |
         connectors:
-          # GitHub example
           - type: github
             id: github
             name: GitHub
@@ -34,8 +33,6 @@ argo-cd:
       homelab:
         url: git@github.com:MarkDPierce/privatelab.git
         type: git
-    params:
-      server.insecure: true
     secret:
       argocdServerAdminPassword: $2a$10$2treTPqBeKE82S4YR6g0CuhmDlxtr9qflEXZMA1nwwNp/VGI8kyXG
     repositories:
@@ -69,8 +66,11 @@ argo-cd:
         g, mark.pierce.d@gmail.com, role:admin
       scopes: '[email, groups]'
 
+  params:
+    server.insecure: false
+
   applicationSet:
-    enabled: false
+    enabled: true
   
   repoServer:
     autoscaling:
