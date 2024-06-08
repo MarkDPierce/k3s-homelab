@@ -21,7 +21,6 @@ argo-cd:
         cert-manager.io/common-name: *host
       hostname: *host
       extraTls:
-      extraTls:
         - secretName: argocd-server-tls
           hosts:
             - *host
@@ -31,8 +30,6 @@ argo-cd:
         external-dns.alpha.kubernetes.io/ttl: "10"
       type: LoadBalancer
 
-
-
 argocd-apps:
   applications:
     - name: homelab
@@ -40,7 +37,7 @@ argocd-apps:
       project: homelab
       source:
         repoURL: git@github.com:MarkDPierce/privatelab.git
-        targetRevision: master
+        targetRevision: HEAD
         path: k3s/helm/applications
         helm:
           valueFiles:

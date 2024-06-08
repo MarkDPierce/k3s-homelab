@@ -1,0 +1,77 @@
+apiVersion: traefik.containo.us/v1alpha1
+kind: Middleware
+metadata:
+  name: auth-headers
+  namespace: oauth2-proxy
+spec:
+  headers:
+    #sslRedirect: true
+    #sslHost: mpierce.net
+    stsSeconds: 315360000
+    browserXssFilter: true
+    contentTypeNosniff: true
+    forceSTSHeader: true
+    stsIncludeSubdomains: true
+    stsPreload: true
+    frameDeny: true
+---
+apiVersion: traefik.containo.us/v1alpha1
+kind: Middleware
+metadata:
+  name: oauth-auth
+  #namespace: oauth2-proxy
+  namespace: oauth2-proxy
+spec:
+  forwardAuth:
+    address: http://oauth2-proxy.oauth2-proxy.svc.cluster.local/oauth2/auth
+    #address: http://oauth2-proxy.oauth2-proxy
+    trustForwardHeader: true
+    authResponseHeaders:
+      - X-Auth-Request-Access-Token
+      - Authorization
+      - Set-Cookie
+      #- X-Auth-Request-Redirect
+      #- X-Auth-Request-Email
+      #- X-Auth-Request-User
+      #- X-Auth-Request-Groups
+      #- X-Auth-Request-Username
+
+---
+apiVersion: traefik.containo.us/v1alpha1
+kind: Middleware
+metadata:
+  name: oauth-forwardauth-heimdall
+  #namespace: oauth2-proxy
+  namespace: oauth2-proxy
+spec:
+  forwardAuth:
+    address: http://oauth2-proxy.oauth2-proxy/oauth2/auth?allowed_groups=/heimdall
+    trustForwardHeader: true
+---
+apiVersion: traefik.containo.us/v1alpha1
+kind: Middleware
+metadata:
+  name: oauth-signin
+  namespace: oauth2-proxy
+spec:
+  errors:
+    status:
+      - "401-403"
+    service:
+      name: oauth2-proxy
+      port: 80
+    query: "/oauth2/sign_in"
+    #query: "/oauth2/sign_in?rd={url}"
+---
+apiVersion: traefik.containo.us/v1alpha1
+kind: Middleware
+metadata:
+  name: oauth
+  namespace: oauth2-proxy
+spec:
+  chain:
+    middlewares:
+      #- name: auth-headers
+      - name: oauth-signin
+      - name: oauth-auth
+      #- name: oauth-forwardauth-heimdall

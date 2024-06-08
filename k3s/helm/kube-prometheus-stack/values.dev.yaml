@@ -98,21 +98,23 @@ kube-prometheus-stack:
   grafana:
     enableKubeBackwardCompatibility: true
     grafana.ini:
+      analytics:
+        check_for_updates: false
       server:
         domain: *fqdngr
+        root_url: https://grafana.dev.mpierce.net
       auth:
-        disable_login_form: false
+        disable_login_form: true
       auth.github:
         enabled: true
         allow_sign_up: true
-        scopes: 'user:email'
-        auth_url: https://github.com/login/oauth/authorize
-        token_url: https://github.com/login/oauth/access_token
-        api_url: https://api.github.com/user
+        scopes: 'user:email,read:org'
         client_id: $__env{GH_CLIENT_ID}
         client_secret: $__env{GH_CLIENT_SECRET}
+        role_attribue_path: contains([login=='MarkDPierce'][0]) && 'GrafanaAdmin' || 'Admin'
       auth.basic:
         enabled: false
+    
     defaultDashboardsEditable: false
     sidecar:
       dashboards:
@@ -159,14 +161,14 @@ kube-prometheus-stack:
       resources:
         requests:
           memory: 400Mi
-      retention: 3h
+      retention: 30d
       storageSpec:
         volumeClaimTemplate:
           spec:
             storageClassName: longhorn
             resources:
               requests:
-                storage: 5Gi
+                storage: 20Gi
     additionalServiceMonitors:
       - name: traefik
         jobLabel: "traefik"

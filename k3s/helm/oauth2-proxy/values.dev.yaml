@@ -1,0 +1,41 @@
+oauth2-proxy:
+  config:
+    configFile: |
+      reverse_proxy = true
+      redirect_url = "https://oauth.dev.mpierce.net/oauth2/callback"
+      provider = "github"
+      github_repo = "markDPierce/privatelab"
+      upstreams = [ "static://202" ]
+      cookie_secure = false
+
+      email_domains = [ "*" ]
+      cookie_domains = [ "dev.mpierce.net", "*.dev.mpierce.net" ]
+      whitelist_domains = [ "dev.mpierce.net", "*.dev.mpierce.net" ]
+
+      pass_basic_auth = true
+      pass_user_headers = true
+      pass_access_token = true
+      pass_authorization_header = true
+      prefer_email_to_user = true
+      set_authorization_header = true
+      set_xauthrequest = true
+
+      skip_provider_button = true
+
+      silence_ping_logging = true
+    
+  ingress:
+    enabled: true
+    className: traefik
+    path: /
+    hosts:
+      - oauth.dev.mpierce.net
+    annotations:
+      traefik.ingress.kubernetes.io/router.entrypoints: websecure
+      traefik.ingress.kubernetes.io/router.tls: "true"
+      traefik.ingress.kubernetes.io/router.middlewares: oauth2-proxy-auth-headers@kubernetescrd
+      cert-manager.io/cluster-issuer: letsencrypt
+    tls:
+      - secretName: oauth2-secret-tls
+        hosts:
+          - oauth.dev.mpierce.net

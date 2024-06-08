@@ -7,7 +7,7 @@ argo-cd:
     domain: &host argocd.dev.mpierce.net
     image:
       repository: ghcr.io/markdpierce/privatelab/argocd
-      tag: v2.10.4@sha256:9a3c4a2099b5de1ca6257ce7a678eeaa86e301379c7af3b885de9a683a8341f9
+      tag: v2.10.4@sha256:a9c0b065325488cc17bca9e53c5ca5d607962bff30a9da08abf32a9a2f70f497
 
   server:
     ingress:
@@ -21,7 +21,6 @@ argo-cd:
         cert-manager.io/common-name: *host
       hostname: *host
       extraTls:
-      extraTls:
         - secretName: argocd-server-tls
           hosts:
             - *host
@@ -30,7 +29,6 @@ argo-cd:
         external-dns.alpha.kubernetes.io/hostname: argocd.dev.mpierce.net.
         external-dns.alpha.kubernetes.io/ttl: "10"
       type: LoadBalancer
-
 
 argocd-apps:
   applications:

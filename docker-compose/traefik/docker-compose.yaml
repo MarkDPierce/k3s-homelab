@@ -6,12 +6,6 @@ networks:
   docker-nonexposed:
     internal: true # means it gets created especially for this compose and is called <dirname>_docker-nonexposed
     driver: bridge
-  docker-vlan-backend:
-    external: true
-    driver: bridge
-    ipam:
-      config:
-        - subnet: 255.255.0.0/16
 
 services:
   traefik:
@@ -68,10 +62,7 @@ services:
     environment:
       CONTAINERS: 1
     networks:
-      docker-nonexposed: {}
-      # My docker hosts have an extra nic on a VLAN for host to host communication
-      # Dont expose this proxy unless you harden and encrypt it.
-      docker-vlan-backend: {}
+      docker-exposed: {}
     ports:
       - "2375:2375"
     labels:

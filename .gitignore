@@ -1,4 +1,5 @@
 secrets/age-key.txt
+secrets.txt
 *.env
 *.gz
 !example.env

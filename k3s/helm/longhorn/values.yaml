@@ -9,6 +9,7 @@ longhorn:
 
   persistence:
     migratable: true
+    defaultDataLocality: best-effort
     defaultClassReplicaCount: 2
 
   services:
@@ -26,4 +27,4 @@ longhorn:
 
   metrics:
    serviceMonitor:
-    enabled: false
+    enabled: true

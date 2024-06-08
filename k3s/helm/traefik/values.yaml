@@ -6,12 +6,34 @@ traefik:
       enabled: true
       format: json
 
+  ports:
+    web:
+      forwardedHeaders:
+        insecure: true
+    websecure:
+      forwardedHeaders:
+        insecure: true
+
   globalArguments:
     - "--global.checknewversion"
 
+  metrics:
+    prometheus:
+      addEntryPointsLabels: true
+      addRoutersLabels: true
+      addServicesLabels: true
+    service:
+      enabled: true
+
+  tracing:
+    jaeger:
+      samplingServerURL: http://192.168.178.105:5778/sampling
+      localAgentHostPort: 192.168.178.105:6831
+      samplingType: const
+
   autoscaling:
-    enabled: false
-    minReplicas: 1
+    enabled: true
+    minReplicas: 3
     maxReplicas: 10
     metrics:
     - type: Resource
@@ -40,6 +62,7 @@ traefik:
 
   deployment:
     revisionHistoryLimit: 3
+    replicas: 3
 
   providers:
     # Enable cross namespace references
@@ -54,6 +77,8 @@ traefik:
       #ingressClass: traefik
       publishedService:
         enabled: true
+    file:
+      enabled: false
 
   ingressRoute:
     tls:

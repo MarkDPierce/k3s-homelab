@@ -1,5 +1,3 @@
-version: '3.8'
-
 networks:
   docker-exposed:
     external: true
@@ -38,7 +36,5 @@ services:
       resources:
         limits:
           memory: 900m
-          cpus: "1"
         reservations:
           memory: 500m
-          cpus: "0.75"

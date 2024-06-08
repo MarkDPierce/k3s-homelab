@@ -9,7 +9,7 @@ traefik:
 
   logs:
     general:
-      level: debug
+      level: ERROR
 
   resources:
     requests:

@@ -7,6 +7,14 @@ renovate:
     schedule: "36 6 * * 1-5" # before start of workday, don't bunch all cronjobs at xx:00\
     ttlSecondsAfterFinished: 43200 # 12 hours
     activeDeadlineSeconds: 7200 # 2 hours
+    concurrencyPolicy: 'Replace'
+    failedJobsHistoryLimit: '2'
+    jobBackoffLimit: '3'
+    preCommand: |
+      ffffff
+    postCommand: |
+      # 
+      curl "https://gotify.mpierce.net/message?token=AYMZ_GeV.xCoNIv" -F "title=Docker03 Backups Complete" -F "message=restic backup script for finished at $(datestring) in ${delta}" -F "priority=5"
 
   renovate:
     config: |-

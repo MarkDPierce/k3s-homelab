@@ -27,6 +27,7 @@ heimdall:
         annotations:
           traefik.ingress.kubernetes.io/router.entrypoints: websecure
           traefik.ingress.kubernetes.io/router.tls: "true"
+          traefik.ingress.kubernetes.io/router.middlewares: oauth2-proxy-oauth@kubernetescrd
           cert-manager.io/cluster-issuer: letsencrypt
           cert-manager.io/common-name: *hostname
         ingressClassName: traefik

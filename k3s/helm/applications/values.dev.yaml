@@ -53,7 +53,14 @@ apps:
     valueFiles:
       - values.yaml
 
+  oauth2-proxy:
+    valueFiles:
+      - values.yaml
+      - values.dev.yaml
+      - secrets://secrets.dev.yaml
+
   traefik:
+    upstream:
     valueFiles:
       - values.yaml
       - values.dev.yaml

@@ -20,6 +20,7 @@ services:
       - NET_ADMIN
     profiles:
       - pihole
+      - cloudflared
       - pihole-sync
     networks:
       docker-exposed: {}
@@ -80,9 +81,7 @@ services:
       - pihole
     profiles:
       - pihole
-      - cloudflared
       - pihole-sync
-      - cloudflared-sync
     networks:
       dns-net:
         ipv4_address: 172.13.0.3
@@ -105,62 +104,6 @@ services:
         reservations:
           memory: 20m
 
-  cloudflared-pihole:
-    image: pihole/pihole:latest
-    container_name: pihole-cloudflared
-    hostname: pihole
-    restart: unless-stopped
-    profiles:
-      - cloudflared
-      - cloudflared-sync
-    networks:
-      docker-exposed: {}
-      dns-net:
-        ipv4_address: 172.13.0.4
-    ports:
-      - "${HOST_IP}:53:53/tcp"
-      - "${HOST_IP}:53:53/udp"
-      - "${HOST_IP}:853:853/udp"
-      - "${HOST_IP}:${PIHOLE_PORT}:80/tcp"
-    environment:
-      - "TZ=${TZ}"
-      - "WEBPASSWORD=${PIHOLE_PASSWORD}"
-      - "DNSMASQ_LISTENING=all"
-      - "PIHOLE_DNS_=172.13.0.4#5053"
-      - "DNS_BOGUS_PRIV=true"
-      - "REV_SERVER_DOMAIN=fritz.box"
-      - "REV_SERVER_TARGET=192.168.178.1"
-      - "REV_SERVER_CIDR=192.168.178.0/24"
-      - "DNSSEC=false"
-      - "WEBTHEME=default-darker"
-      - "WEBUIBOXEDLAYOUT=boxed"
-      - "QUERY_LOGGING=true"
-      - "INTERFACE=eth0"
-      - "VIRTUAL_HOST=${FQDN}"
-    volumes:
-      - './srv/pihole/etc-pihole:/etc/pihole'
-      - './srv/pihole/etc-dnsmasq.d:/etc/dnsmasq.d'
-    labels:
-      - "env=prod"
-      - com.centurylinklabs.watchtower.enable=false
-      - "traefik.enable=true"
-      - "traefik.http.routers.pihole.entrypoints=https"
-      - "traefik.http.routers.pihole.rule=Host(`${FQDN}`)"
-      #- "traefik.http.routers.pihole.middlewares=pihole-admin"
-      - "traefik.http.routers.pihole.service=pihole"
-      - "traefik.http.routers.pihole.tls=true"
-      - "traefik.http.services.pihole.loadbalancer.server.port=80"
-      #- "traefik.http.middlewares.pihole-admin.addprefix.prefix=/admin"
-      - "traefik.http.routers.pihole_http.entrypoints=http"
-      - "traefik.http.routers.pihole_http.rule=Host(`${FQDN}`)"
-      #- "traefik.http.middlewares=https-redirectscheme"
-    deploy:
-      resources:
-        limits:
-          memory: 500m
-        reservations:
-          memory: 500m
-
   cloudflared:
     image: cloudflare/cloudflared:latest
     container_name: cloudflared
@@ -176,7 +119,7 @@ services:
     environment:
       TUNNEL_DNS_UPSTREAM: "https://1.0.0.1/dns-query,https://1.1.1.1/dns-query"
       TUNNEL_DNS_PORT: "5053"
-      TUNNEL_DNS_ADDRESS: "0.0.0.0"
+      TUNNEL_DNS_ADDRESS: "102.168.178.104"
       TUNNEL_TOKEN: ${CLOUDFLARED_TUNNEL_TOKEN}
     labels:
       - "env=prod"

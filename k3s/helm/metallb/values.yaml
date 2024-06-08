@@ -1,2 +1,20 @@
 metallb:
   fullnameOverride: metallb
+
+  prometheus:
+    scrapeAnnotations: true
+    serviceMonitor:
+      enabled: false
+
+  controller:
+    resources:
+      limits:
+        cpu: 100m
+        memory: 100Mi
+
+  speaker:
+    logLevel: error
+  resources:
+    limits:
+      cpu: 100m
+      memory: 100Mi

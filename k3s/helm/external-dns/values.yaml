@@ -2,3 +2,11 @@ external-dns:
   fullnameOverride: external-dns
   provider: pihole
   registry: noop
+
+  serviceMonitor:
+    enabled: true
+  
+  logLevel: warning
+  interval: 5m
+
+  triggerLoopOnEvent: true

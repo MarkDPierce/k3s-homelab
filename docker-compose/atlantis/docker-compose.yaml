@@ -1,0 +1,32 @@
+
+services:
+  atlantis:
+    image: ghcr.io/runatlantis/atlantis:latest
+    container_name: atlantis
+    hostname: atlantis
+    restart: unless-stopped
+    ports:
+      - "4141:4141"
+    volumes:
+      - ./creds.json:/home/atlantis/creds.json
+      - ./age-key.txt:/home/atlantis/age-key.txt
+    env_file:
+     - atlantis.env
+    environment:
+      - SOPS_AGE_KEY_FILE=/home/atlantis/age-key.txt
+    labels:
+      - "env=prod"
+      - "com.centurylinklabs.watchtower.enable=true"
+      - "traefik.enable=true"
+      - "traefik.http.routers.atlantis.entrypoints=https"
+      - "traefik.http.routers.atlantis.rule=Host(`${FQDN}`)"
+      - "traefik.http.routers.atlantis.service=atlantis"
+      - "traefik.http.routers.atlantis.tls=true"
+      - "traefik.http.routers.atlantis.tls.certresolver=cloudflare"
+      - "traefik.http.services.atlantis.loadbalancer.server.port=4141"
+    deploy:
+      resources:
+        limits:
+          memory: 200m
+        reservations:
+          memory: 50m

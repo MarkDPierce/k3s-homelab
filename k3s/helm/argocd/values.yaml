@@ -4,12 +4,13 @@ age:
 argo-cd:
   global:
     logging:
-      level: warn
+      level: error
     securityContext:
       runAsUser: 999
       runAsGroup: 999
       fsGroup: 999
     revisionHistoryLimit: 3
+    addPrometheusAnnotations: true
     networkPolicy:
       create: false
 
@@ -18,7 +19,7 @@ argo-cd:
 
   configs:
     cm:
-      admin.enabled: true
+      admin.enabled: false
       dex.config: |
         connectors:
           - type: github
@@ -77,6 +78,8 @@ argo-cd:
       enabled: false
     metrics:
       enabled: true
+      serviceMonitor:
+        enabled: false
     serviceAccount:
       create: true
       name: argocd
@@ -101,6 +104,10 @@ argo-cd:
           - watch
 
   server:
+    metrics:
+      enabled: true
+      serviceMonitor:
+        enabled: false
     resources:
       limits:
         cpu: 200m

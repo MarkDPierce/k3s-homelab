@@ -1,0 +1,18 @@
+apiVersion: traefik.containo.us/v1alpha1
+kind: IngressRoute
+metadata:
+  name: oauth2-proxy
+  namespace: oauth2-proxy
+spec:
+  routes:
+  - kind: Rule
+    match: Host(`oauth.dev.mpierce.net`)
+    middlewares:
+    - name: auth-headers
+      namespace: traefik
+    services:
+    - name: oauth2-proxy
+      namespace: oauth2-proxy
+      port: 80
+  tls:
+    secretName: oauth2-secret-tls

@@ -1,5 +1,3 @@
-version: '3.8'
-
 networks:
   docker-exposed:
     external: true # means it is a fixed docker network created with "docker network create docker-exposed"

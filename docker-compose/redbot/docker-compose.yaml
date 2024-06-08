@@ -1,0 +1,31 @@
+networks:
+  docker-exposed:
+    external: true
+    name: docker-exposed
+    driver: bridge
+
+services:
+  redbot:
+    image: phasecorex/red-discordbot:latest
+    container_name: redbot
+    hostname: redbot
+    restart: unless-stopped
+    networks:
+      - docker-exposed
+    volumes:
+      - ./srv:/data
+    environment:
+      - TOKEN=${TOKEN}
+      - PREFIX=!
+      - PGID=${PGID}
+      - PUID=${PUID}
+      - TZ=${TZ}
+    labels:
+      - "env=prod"
+      - com.centurylinklabs.watchtower.enable=true
+    deploy:
+      resources:
+        limits:
+          memory: 500m
+        reservations:
+          memory: 250m
