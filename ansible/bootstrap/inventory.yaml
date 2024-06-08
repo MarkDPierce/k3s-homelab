@@ -1,0 +1,36 @@
+---
+newJoins:
+  children:
+    docker:
+      hosts:
+        192.168.178.104:
+          hostname: prod-docker01
+        192.168.178.105:
+          hostname: prod-docker02
+        192.168.178.106:
+          hostname: prod-docker03
+    k3s:
+      hosts:
+        192.168.178.107:
+          hostname: dev-k3sServer00
+          iscsi_target: iqn.2000-01.com.synology:bottomlessbag.Target-11.7fd1c11980c
+        192.168.178.108:
+          hostname: dev-k3sNode00
+          iscsi_target: iqn.2000-01.com.synology:bottomlessbag.Target-11.7fd1c11980c
+        192.168.178.109:
+          hostname: dev-k3sNode01
+          iscsi_target: iqn.2000-01.com.synology:bottomlessbag.Target-11.7fd1c11980c
+        192.168.178.110:
+          hostname: dev-k3sNode02
+          iscsi_target: iqn.2000-01.com.synology:bottomlessbag.Target-11.7fd1c11980c
+        192.168.178.111:
+          hostname: dev-k3sNode03
+          iscsi_target: iqn.2000-01.com.synology:bottomlessbag.Target-11.7fd1c11980c
+
+  # Required Vars
+  vars:
+    ansible_port: 22
+    ansible_user: ansible
+    system_timezone: "Etc/UTC"
+    backup_source: //192.168.178.101/timemachine/docker01
+    iscsi_host: "192.168.178.101"

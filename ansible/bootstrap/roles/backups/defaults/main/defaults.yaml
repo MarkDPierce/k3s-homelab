@@ -1,0 +1,33 @@
+---
+
+# Backup Job
+backup_cron_job_state: present
+backup_user: restic
+backup_path: "/home/{{ backup_user }}"
+restic_version: "0.16.4"
+restic_logs_path: "{{ backup_path }}"
+backup_hour: "*"
+backup_minute: "*/60"
+backup_script_name: "restic.sh" # Make sure its a .j2 template but do not include the .j2 extension.
+
+backup_to_directory: "/backups" # The directory your restic registry is mounted to
+#backup_source: # I am using CIFs so this is just a remote drive
+#gotify_url: This should be in vault
+
+# Cifs Stuff
+cifs_password_file: /root/.cifs
+# The Contents for /root/.cifs are in secrets.yaml under Vault control. If you want clear-text uncomment below
+# cifs_registry_pw: |-
+#   username=<USER>
+#   password=<PASS>
+
+# Restic stuff
+restic_password_file: /home/restic/.restic
+# The Contents for /root/.restic are in secrets.yaml under Vault control. If you want clear-text uncomment below
+# restic_registry_pw: |-
+#   <PASSWORD>
+
+trigger_initial_backup: false
+
+# Test message script
+test_message_state: absent

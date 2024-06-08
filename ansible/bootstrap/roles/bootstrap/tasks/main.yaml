@@ -1,0 +1,48 @@
+---
+- name: Set same timezone on every Server
+  community.general.timezone:
+    name: "{{ system_timezone }}"
+  when: (system_timezone is defined) and (system_timezone != "Your/Timezone")
+
+- name: Update and upgrade apt packages
+  become: true
+  apt:
+    upgrade: yes
+    update_cache: yes
+    cache_valid_time: 86400 #One day
+
+- name: Install qol and dependencies
+  become: true
+  apt:
+    name:
+      - sudo
+      - vim
+      - curl
+      - make
+      - cron
+      - qemu-guest-agent
+  ignore_errors: true # Best effort.
+
+#- name: Add authkey to homelab user
+#  authorized_key:
+#    user: homelab
+#    key: "{{ lookup('file', public_key) }}"
+
+- name: Set authorized keys taken from url
+  ansible.posix.authorized_key:
+    user: homelab
+    state: present
+    key: https://github.com/MarkDPierce.keys
+
+- name: Add hostname to /etc/hosts
+  lineinfile:
+    path: /etc/hosts
+    line: "{{ ansible_host }} {{ hostvars[inventory_hostname]['hostname'] }}"
+    state: "present"
+  changed_when: false
+
+- name: Set hostname
+  hostname:
+    name: "{{ hostvars[inventory_hostname]['hostname'] }}"
+  notify: Reboot hostname
+  changed_when: false

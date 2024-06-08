@@ -1,0 +1,29 @@
+---
+- name: Host Bootstrapping
+  hosts: newJoins
+  remote_user: '{{ ansible_user }}'
+  become: true
+  roles:
+    - role: bootstrap
+
+- name: Install Docker on servers
+  hosts: docker
+  remote_user: '{{ ansible_user }}'
+  become: true
+  roles:
+    - role: docker
+    - role: backups
+
+- name: Enable Backups
+  hosts: docker
+  remote_user: '{{ ansible_user }}'
+  become: true
+  roles:
+    - role: backups
+
+- name: Configure iscsi
+  hosts: newJoins
+  remote_user: '{{ ansible_user }}'
+  become: true
+  roles:
+    - role: iscsi

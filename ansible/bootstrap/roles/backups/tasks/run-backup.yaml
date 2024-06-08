@@ -1,0 +1,5 @@
+---
+- name: Run Backup
+  become: true
+  ansible.builtin.shell:
+    cmd: "{{ backup_path }}/{{ backup_script_name }}"

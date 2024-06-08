@@ -1,0 +1,9 @@
+---
+- include_tasks: configure-cifs.yaml
+
+- include_tasks: configure-restic.yaml
+
+- include_tasks: configure-job.yaml
+
+- include_tasks: run-backup.yaml
+  when: trigger_initial_backup | bool == true

@@ -1,0 +1,1 @@
+I pretty much took the official k3s Ansible playbook and trimmed out the Arch linux and Redhat stuff since I only ever intend on deploying Debian into my ecosystem. If you run other OS' then you might need to grab [](https://github.com/k3s-io/k3s-ansible).

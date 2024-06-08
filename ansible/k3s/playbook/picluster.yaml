@@ -1,0 +1,20 @@
+---
+- name: Cluster prep
+  hosts: k3s_pi_cluster
+  gather_facts: true
+  become: true
+  roles:
+    - role: prereq
+    - role: raspberrypi
+
+- name: Setup K3S server
+  hosts: piserver
+  become: true
+  roles:
+    - role: k3s_server
+
+- name: Setup K3S agent
+  hosts: piagent
+  become: true
+  roles:
+    - role: k3s_agent

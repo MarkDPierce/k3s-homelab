@@ -1,0 +1,64 @@
+---
+- name: Install restic and other dependencies
+  apt:
+    name: 
+      - restic
+      - bzip2
+
+- name: Create 'restic' system user with home directory
+  user:
+    name: "{{ backup_user }}"
+    system: yes
+    createhome: yes
+    shell: /sbin/nologin
+
+- name: Create directory for restic binary
+  file:
+    path: "{{ backup_path }}/bin"
+    state: directory
+
+- name: Create restic password file
+  file:
+    path: "{{ restic_password_file }}"
+    owner: root
+    group: root
+    mode: '0644'
+    modification_time: preserve
+    access_time: preserve
+    state: touch
+
+- name: Update restic password file
+  copy:
+    dest: "{{ restic_password_file }}"
+    content: "{{ restic_registry_pw }}"
+
+- name: Check if restic binary already exists
+  stat:
+    path: "{{ backup_path }}/bin/restic_{{ restic_version }}_linux_amd64.bz2"
+  register: restic_file
+
+- name: Download restic binary
+  get_url:
+    url: "https://github.com/restic/restic/releases/download/v{{ restic_version }}/restic_{{ restic_version }}_linux_amd64.bz2"
+    dest: "{{ backup_path }}/bin/restic.bz2"
+    mode: 0750
+    owner: root
+    group: "{{ backup_user }}"
+  when: not restic_file.stat.exists
+
+- name: Extract restic binary
+  shell: "bunzip2 -c {{ backup_path }}/bin/restic.bz2 > {{ backup_path }}/bin/restic"
+  args:
+    creates: "{{ backup_path }}/bin/restic"
+  register: extract_result
+
+- name: Set permissions for restic binary
+  file:
+    path: "{{ backup_path }}/bin/restic"
+    owner: root
+    group: "{{ backup_user }}"
+    mode: 750
+
+- name: Set capabilities for restic binary
+  become: true
+  command: "setcap cap_dac_read_search=+ep {{ backup_path }}/bin/restic"

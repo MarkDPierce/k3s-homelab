@@ -1,0 +1,45 @@
+---
+- name: Copy Backup script to Server
+  ansible.builtin.template:
+    #src: "{{ backup_script_name }}.j2"
+    src: "restic.sh.j2"
+    dest: "{{ backup_path }}/{{ backup_script_name }}"
+    owner: root
+    group: root
+    mode: 0755
+  when: backup_cron_job_state == "present"
+
+- name: Making backup script executable
+  file: "dest={{ backup_path }}/{{ backup_script_name }} mode=a+x"
+  when: backup_cron_job_state == "present"
+
+- name: Configure backup Job
+  cron:
+    name: "Restic Backup"
+    minute: "{{ backup_minute }}"
+    hour: "{{ backup_hour }}"
+    user: "{{ backup_user }}"
+    job: "/bin/bash {{ backup_path }}/{{ backup_script_name }}"
+    state: "{{ backup_cron_job_state }}"
+  when: backup_cron_job_state == "present"
+
+- name: Copy test script to server
+  copy:
+    src: sendMessage.sh
+    dest: "{{ backup_path }}/sendMessage.sh"
+    owner: "{{ backup_user }}"
+    group: "{{ backup_user }}"
+    #mode: 0744
+  when: backup_cron_job_state == "present"
+
+- name: Making test script executable
+  file: dest={{ backup_path }}/sendMessage.sh mode=a+x
+
+- name: Configure test script job
+  cron:
+    name: "TestScript"
+    minute: "*/3"
+    hour: "*"
+    user: "{{ backup_user }}"
+    job: "/bin/bash {{ backup_path }}/sendMessage.sh"
+    state: "{{ test_message_state }}"

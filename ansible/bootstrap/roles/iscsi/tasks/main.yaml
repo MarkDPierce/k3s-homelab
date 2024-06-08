@@ -1,0 +1,64 @@
+---
+- name: Install open-iscsi
+  apt:
+    name:
+      - open-iscsi
+      - nfs-common
+  ignore_errors: false
+  when: hostvars[inventory_hostname]['iscsi_target'] is defined
+
+
+- name: Enable and start open-iscsi
+  ansible.builtin.systemd:
+    name: open-iscsi
+    state: started
+    enabled: yes
+  when: hostvars[inventory_hostname]['iscsi_target'] is defined
+
+
+- name: Perform a discovery on 10.1.2.3 and show available target nodes
+  community.general.open_iscsi:
+    show_nodes: true
+    discover: true
+    ip: "{{ iscsi_host }}"
+  when: hostvars[inventory_hostname]['iscsi_target'] is defined
+
+
+- name: Rescan one or all established sessions to discover new targets (omit target for all sessions)
+  community.general.open_iscsi:
+    rescan: true
+    target: hostvars[inventory_hostname]['iscsi_target']
+  when: hostvars[inventory_hostname]['iscsi_target'] is defined
+
+
+- name: Format the disk
+  ansible.builtin.filesystem:
+    fstype: "{{ fstype }}"
+    dev: "{{ disk_name }}"
+  when: hostvars[inventory_hostname]['iscsi_target'] is defined
+
+
+- name: Create mount directory
+  ansible.builtin.file:
+   path: "{{ mount_point }}"
+   state: directory
+   mode: '0755'
+  when: hostvars[inventory_hostname]['iscsi_target'] is defined
+
+
+- name: Mount the disk
+  mount:
+    path: "{{ mount_point }}"
+    src: "{{ disk_name }}"
+    fstype: "{{ fstype }}"
+    state: mounted
+    opts: _netdev
+  when: hostvars[inventory_hostname]['iscsi_target'] is defined
+
+
+- name: Add mount to fstab
+  lineinfile:
+    path: /etc/fstab
+    line: '{{ disk_name }} {{ mount_point }} {{ fstype }} _netdev 0 0'
+    state: present
+  when: hostvars[inventory_hostname]['iscsi_target'] is defined

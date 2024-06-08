@@ -1,0 +1,129 @@
+{% raw %}
+#!/bin/bash
+
+# Need to document this
+# https://gist.github.com/paolobasso99/88a7f73efedc08b2fd006b1002e9a379
+# https://www.monotux.tech/posts/2023/08/restic-backup-script/
+# Mounting CIFS https://help.ubuntu.com/community/MountCifsFstab
+# Mounting CIFS https://forum.openmediavault.org/index.php?thread/23489-ubunutu-18-04-how-to-automount-a-cifs/&postID=178599&highlight=fstab#post178599
+# Restic local https://restic.readthedocs.io/en/latest/030_preparing_a_new_repo.html#local
+
+{% endraw %}
+
+RESTIC_REPOSITORY="{{ backup_to_directory }}"
+MY_RESTIC_LOGS_PATH="{{ restic_logs_path }}"
+PASSWORD_FILE_PATH="{{ backup_path }}/.restic"
+GOTIFY_HOST="{{ gotify_url }}"
+
+export GODEBUG=asyncpreemptoff=1
+
+DateString() {
+    date +%Y-%m-%d\ %H:%M:%S
+}
+
+SendMessage() {
+    local DELTA=$1
+
+    echo "restic backup script for finished at $(DateString) in ${DELTA}"
+    curl $GOTIFY_HOST -F "title=$HOSTNAME Backups Complete" -F "message=restic backup script for finished at $(DateString) in ${DELTA}" -F "priority=5"
+}
+
+RunBackup() {
+    local REPOSITORY=$1
+    local FOLDER_PATH=$2
+
+    echo "Running Backups at $(DateString)"
+    /home/restic/bin/restic -r $REPOSITORY \
+        --verbose=2 \
+        --password-file=$PASSWORD_FILE_PATH \
+        backup \
+        $FOLDER_PATH
+}
+
+CheckRepo() {
+    echo "Check repository at $(DateString)"
+    /home/restic/bin/restic -r $REPOSITORY \
+        --verbose \
+        --password-file /home/restic/.restic \
+         check
+}
+
+PruneBackups() {
+    local REPOSITORY=$1
+    local FOLDER_PATH=$2
+
+    echo "Pruning Backups at $(DateString)"
+    /home/restic/bin/restic -r $REPOSITORY \
+        --verbose=2 \
+        --password-file=$PASSWORD_FILE_PATH \
+        forget \
+        --prune \
+        --keep-hourly 1 \
+        --keep-daily 10 \
+        --keep-weekly 5 \
+        --keep-monthly 14 \
+        --keep-yearly 100
+
+    CheckRepo
+}
+
+PruneLogs() {
+    local FOLDER_PATH=$1
+    files_to_keep=10
+
+    echo "Running Backups at $(DateString)"
+    sorted_files=($(ls -t $FOLDER_PATH | grep .log))
+    
+    {% raw %}
+    total_files=${#sorted_files[@]}
+    {% endraw %}
+
+    for ((i=$files_to_keep; i<$total_files; i++)); do
+        rm -rf "${sorted_files[$i]}" --verbose
+    done
+}
+
+LockFile() {
+    local LOCKFILE=$1
+    local FOLDER_PATH=$2
+    
+    exec 99>"${LOCKFILE}"
+    flock -n 99
+    RC=$?
+    
+    if [ "$RC" != 0 ]; then
+        echo "This restic ${RESTIC_REPOSITORY} backup of ${FOLDER_PATH} is already running. Exiting. $(DateString)"
+        exit
+    fi
+}
+
+CleanLockFile() {
+    local LOCKFILE=$1
+
+    echo "Deleting lock file at $(DateString)"
+    rm -f ${LOCKFILE} 
+}
+
+main() {
+    START_TIMESTAMP=$(date +%s)
+    LOG_FILE="${MY_RESTIC_LOGS_PATH}/$(date +%Y-%m-%d-%H-%M-%S).log"
+    touch $LOG_FILE
+    echo "restic backup script started at $(DateString)" | tee -a $LOG_FILE
+    echo "REPOSITORY=${RESTIC_REPOSITORY}" | tee -a $LOG_FILE
+
+    LockFile /tmp/my_restic_backup.lock "/home/homelab/privatelab" | tee -a $LOG_FILE
+
+    RunBackup $RESTIC_REPOSITORY "/home/homelab/privatelab" | tee -a $LOG_FILE
+
+    PruneBackups $RESTIC_REPOSITORY "/home/homelab/privatelab" | tee -a $LOG_FILE
+
+    PruneLogs $MY_RESTIC_LOGS_PATH | tee -a $LOG_FILE
+
+    CleanLockFile $LOCKFILE | tee -a $LOG_FILE
+    
+    #delta=$(date -d@$(($(date +%s) - $START_TIMESTAMP)) -u +%H:%M:%S)
+    #echo "restic backup script for finished at $(DateString) in ${delta}" | tee -a $LOG_FILE
+    SendMessage $(date -d@$(($(date +%s) - $START_TIMESTAMP)) -u +%H:%M:%S) | tee -a $LOG_FILE
+}
+
+main

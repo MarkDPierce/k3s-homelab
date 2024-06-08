@@ -1,0 +1,34 @@
+---
+- name: Install cif-utils
+  apt:
+    name: cifs-utils
+
+- name: Create Backup Directory
+  file:
+    path: "{{ backup_to_directory }}"
+    state: directory
+    mode: 0644
+
+- name: Create cifs password file
+  file:
+    path: "{{ cifs_password_file }}"
+    owner: root
+    group: root
+    mode: '0644'
+    modification_time: preserve
+    access_time: preserve
+    state: touch
+
+- name: Update cifs password file
+  copy:
+    dest: "{{ cifs_password_file }}"
+    content: "{{ cifs_registry_pw }}"
+
+# Mount on boot is default
+- name: Mount backup directory
+  mount:
+    src: "{{ backup_source }}"
+    path: "{{ backup_to_directory }}"
+    opts: "credentials={{ cifs_password_file }},vers=2.1,uid=root,noperm,rw"
+    fstype: cifs
+    state: mounted
